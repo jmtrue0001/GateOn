@@ -1,0 +1,174 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+          xmlns:tools="http://schemas.android.com/tools">
+
+    <!-- Permissions TODO Declare permissions used by application -->
+    <uses-permission android:name="com.samsung.android.knox.permission.KNOX_APP_MGMT"/>
+    <uses-permission android:name="com.samsung.android.knox.permission.KNOX_HW_CONTROL" />
+    <uses-permission android:name="com.laonstory.supportlibclient.SUPPORT_PERMISSION" />
+    <uses-permission android:name="com.samsung.android.knox.permission.KNOX_LICENSE"/>
+    <uses-permission android:name="com.samsung.android.knox.permission.KNOX_ENTERPRISE_DEVICE_ADMIN"/>
+    <uses-permission android:name="android.permission.MANAGE_DEVICE_ADMINS" />
+
+
+    <permission
+            android:name="com.laonstory.supportlibclient.SUPPORT_PERMISSION"
+            android:label="Support permission"
+            android:protectionLevel="signature" />
+
+
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW"/>
+
+    <uses-permission android:name="android.permission.REQUEST_DELETE_PACKAGES"/>
+    <uses-feature android:name="android.software.device_admin"/>
+    <uses-feature
+        android:name="android.hardware.camera"
+        android:required="false" />
+
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE"/>
+    <uses-permission android:name="android.permission.CHANGE_WIFI_STATE"/>
+    <uses-permission android:name="android.permission.UPDATE_DEVICE_STATS" tools:ignore="ProtectedPermissions"/>
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="https" />
+        </intent>
+    </queries>
+    <application
+            android:label="TPASS"
+            android:name="${applicationName}"
+            android:icon="@mipmap/ic_launcher"
+            android:usesCleartextTraffic="true"
+        >
+        <activity
+                android:name=".MainActivity"
+                android:exported="true"
+                android:launchMode="singleTop"
+                android:theme="@style/LaunchTheme"
+                android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode"
+                android:hardwareAccelerated="true"
+                android:windowSoftInputMode="adjustResize">
+            <!-- Specifies an Android theme to apply to this Activity as soon as
+                 the Android process has started. This theme is visible to the user
+                 while the Flutter UI initializes. After that, this theme continues
+                 to determine the Window background behind the Flutter UI. -->
+            <meta-data
+                    android:name="io.flutter.embedding.android.NormalTheme"
+                    android:resource="@style/NormalTheme"
+            />
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN"/>
+                <category android:name="android.intent.category.LAUNCHER"/>
+                <action android:name="android.intent.action.VIEW" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+
+                <data android:scheme="tpass" android:host="flutter" android:pathPrefix="/specificFunction" />
+            </intent-filter>
+
+        </activity>
+
+        <receiver
+                android:name=".AppDeviceAdminReceiver"
+                android:description="@string/device_admin_description"
+                android:exported="true"
+                android:label="@string/app_name"
+                android:permission="android.permission.BIND_DEVICE_ADMIN">
+            <meta-data
+                    android:name="android.app.device_admin"
+                    android:resource="@xml/device_admin_receiver" />
+            <intent-filter android:exported="true">
+                <action android:name="android.app.action.DEVICE_ADMIN_ENABLED" />
+
+<!--                <action android:name="android.app.action.DEVICE_ADMIN_DISABLE_REQUESTED" />-->
+<!--                <action android:name="android.app.action.DEVICE_ADMIN_DISABLED" />-->
+<!--                <action android:name="android.app.action.DEVICE_ADMIN_SERVICE" />-->
+
+<!--                                <action android:name="android.app.action.ACTION_DEVICE_ADMIN_DISABLE_REQUESTED" />-->
+<!--                                <action android:name="android.app.action.ACTION_DEVICE_ADMIN_DISABLED" />-->
+            </intent-filter>
+        </receiver>
+
+        <receiver android:name=".KnoxLicenseReceiver"
+                  android:exported="true">
+            <intent-filter>
+                <action android:name="com.samsung.android.knox.intent.action.KNOX_LICENSE_STATUS" />
+                <action android:name="com.samsung.android.knox.intent.action.LICENSE_STATUS" />
+            </intent-filter>
+        </receiver>
+
+        <receiver android:name="com.samsung.android.knox.IntentConverterReceiver"
+                  android:exported="true">
+            <intent-filter>
+                <action android:name="edm.intent.application.action.prevent.start" />
+                <action android:name="edm.intent.application.action.prevent.stop" />
+                <action android:name="edm.intent.action.ldap.createacct.result" />
+                <action android:name="edm.intent.action.device.inside" />
+                <action android:name="edm.intent.action.device.outside" />
+                <action android:name="edm.intent.action.device.location.unavailable" />
+                <action android:name="com.samsung.edm.intent.action.CERTIFICATE_REMOVED" />
+                <action android:name="edm.intent.certificate.action.certificate.failure" />
+                <action android:name="com.samsung.edm.intent.action.APPLICATION_FOCUS_CHANGE" />
+                <action android:name="edm.intent.action.EMAIL_ACCOUNT_ADD_RESULT" />
+                <action android:name="edm.intent.action.EMAIL_ACCOUNT_DELETE_RESULT" />
+                <action android:name="com.sec.enterprise.intent.action.BLOCKED_DOMAIN" />
+                <action android:name="com.sec.enterprise.intent.action.UPDATE_FOTA_VERSION_RESULT" />
+                <action android:name="com.samsung.edm.intent.action.EXCHANGE_CBA_INSTALL_STATUS" />
+                <action android:name="android.intent.action.sec.CBA_INSTALL_STATUS" />
+                <action android:name="edm.intent.action.EXCHANGE_ACCOUNT_ADD_RESULT" />
+                <action android:name="edm.intent.action.EXCHANGE_ACCOUNT_DELETE_RESULT" />
+                <action android:name="com.samsung.edm.intent.action.ENFORCE_SMIME_ALIAS_RESULT" />
+                <action android:name="edm.intent.action.knox_license.status" />
+                <action android:name="edm.intent.action.license.status" />
+                <action android:name="com.samsung.edm.intent.event.NTP_SERVER_UNREACHABLE" />
+                <action android:name="edm.intent.action.enable.kiosk.mode.result" />
+                <action android:name="edm.intent.action.disable.kiosk.mode.result" />
+                <action android:name="edm.intent.action.unexpected.kiosk.behavior" />
+                <action android:name="com.samsung.edm.intent.action.SIM_CARD_CHANGED" />
+                <action android:name="android.intent.action.sec.SIM_CARD_CHANGED" />
+                <action android:name="com.samsung.action.knox.certenroll.CEP_CERT_ENROLL_STATUS" />
+                <action android:name="com.samsung.action.knox.certenroll.CEP_SERVICE_DISCONNECTED" />
+                <action android:name="com.sec.enterprise.knox.intent.action.KNOX_ATTESTATION_RESULT" />
+                <action android:name="com.sec.action.NO_USER_ACTIVITY" />
+                <action android:name="com.sec.action.USER_ACTIVITY" />
+                <action android:name="com.samsung.android.mdm.VPN_BIND_RESULT" />
+            </intent-filter>
+        </receiver>
+
+
+        <meta-data
+                android:name="flutterEmbedding"
+                android:value="2"/>
+    </application>
+    <uses-permission android:name="android.permission.INTERNET"/>
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
+    <uses-permission android:name="android.permission.BLUETOOTH" android:maxSdkVersion="30"/>
+    <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" android:maxSdkVersion="30"/>
+    <uses-permission android:name="android.permission.BLUETOOTH_SCAN"/>
+    <uses-permission android:name="android.permission.BLUETOOTH_ADVERTISE"/>
+    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT"/>
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
+    <uses-permission android:name="android.permission.CAMERA"/>
+    <uses-permission android:name="android.permission.NFC"/>
+
+    <uses-permission android:name="android.permission.MANAGE_DEVICE_ADMINS" />
+    <uses-permission android:name="android.permission.sec.MDM_APP_MGMT"/>
+    <uses-permission android:name="android.permission.sec.MDM_INSTALL_PACKAGE"/>
+    <uses-permission android:name="android.permission.sec.ENTERPRISE_DEVICE_ADMIN"/>
+    <uses-permission android:name="com.samsung.android.knox.permission.KNOX_ENTERPRISE_DEVICE_ADMIN"/>
+
+
+
+    <!--    <uses-permission android:name="android.permission.REQUEST_DELETE_PACKAGES"/>-->
+<!--    <uses-permission android:name="android.permission.MANAGE_DEVICE_ADMINS" />-->
+<!--    <uses-permission android:name="android.permission.DEVICE_ADMINS" />-->
+<!--    <uses-permission android:name = "android.permission.BIND_DEVICE_ADMIN" />-->
+
+    <!--    <uses-feature android:name="android.software.device_admin"/>-->
+    <!--    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE"/>-->
+    <!--    <uses-permission android:name="android.permission.CHANGE_WIFI_STATE"/>-->
+    <!--    <uses-permission android:name="android.permission.UPDATE_DEVICE_STATS" tools:ignore="ProtectedPermissions"/>-->
+</manifest>

@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CADisableMinimumFrameDurationOnPhone</key>
+	<true/>
+	<key>CFBundleDevelopmentRegion</key>
+	<string>$(DEVELOPMENT_LANGUAGE)</string>
+	<key>CFBundleDisplayName</key>
+	<string>TPASS</string>
+	<key>CFBundleExecutable</key>
+	<string>$(EXECUTABLE_NAME)</string>
+	<key>CFBundleIdentifier</key>
+	<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+	<key>CFBundleInfoDictionaryVersion</key>
+	<string>6.0</string>
+	<key>CFBundleName</key>
+	<string>mguard_app</string>
+	<key>CFBundlePackageType</key>
+	<string>APPL</string>
+	<key>CFBundleShortVersionString</key>
+	<string>$(FLUTTER_BUILD_NAME)</string>
+	<key>CFBundleSignature</key>
+	<string>????</string>
+	<key>CFBundleVersion</key>
+	<string>$(FLUTTER_BUILD_NUMBER)</string>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
+	<key>LSApplicationQueriesSchemes</key>
+	<array>
+		<string>http</string>
+		<string>https</string>
+		<string>tpass</string>
+	</array>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLName</key>
+			<string>com.laonstory.mguardApp</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>tpass</string>
+			</array>
+		</dict>
+	</array>
+	<key>LSRequiresIPhoneOS</key>
+	<true/>
+	<key>io.flutter.embedded_views_preview</key>
+	<true/>
+	<key>NFCReaderUsageDescription</key>
+	<string>Allow NFC scanning</string>
+	<key>NSCameraUsageDescription</key>
+	<string>카메라 작동여부 확인 기능을 위해 카메라 권한이 필요합니다.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>기능 허용 및 차단 프로파일 설치 기능을 위해 사용 시 사용자의 현재 위치를 포함하기 위한 위치 권한이 필요합니다.</string>
+	<key>NSLocationAlwaysUsageDescription</key>
+	<string>기능 허용 및 차단 프로파일 설치 기능을 위해 사용 시 사용자의 현재 위치를 포함하기 위한 위치 권한이 필요합니다.</string>
+	<key>NSLocationUsageDescription</key>
+	<string>기능 허용 및 차단 프로파일 설치 기능을 위해 사용 시 사용자의 현재 위치를 포함하기 위한 위치 권한이 필요합니다.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>기능 허용 및 차단 프로파일 설치 기능을 위해 사용 시 사용자의 현재 위치를 포함하기 위한 위치 권한이 필요합니다.</string>
+	<key>NSBluetoothAlwaysUsageDescription</key>
+	<string>기능 차단 프로파일 설치 기능을 위해 블루투스 권한이 필요합니다.</string>
+	<key>NSBluetoothPeripheralUsageDescription</key>
+	<string>기능 차단 프로파일 설치 기능을 위해 블루투스 권한이 필요합니다.</string>
+	<key>UIApplicationSupportsIndirectInputEvents</key>
+	<true/>
+	<key>UILaunchStoryboardName</key>
+	<string>LaunchScreen</string>
+	<key>UIMainStoryboardFile</key>
+	<string>Main</string>
+	<key>UISupportedInterfaceOrientations</key>
+	<array>
+		<string>UIInterfaceOrientationPortrait</string>
+		<string>UIInterfaceOrientationLandscapeLeft</string>
+		<string>UIInterfaceOrientationLandscapeRight</string>
+	</array>
+	<key>UISupportedInterfaceOrientations~ipad</key>
+	<array>
+		<string>UIInterfaceOrientationPortrait</string>
+		<string>UIInterfaceOrientationPortraitUpsideDown</string>
+		<string>UIInterfaceOrientationLandscapeLeft</string>
+		<string>UIInterfaceOrientationLandscapeRight</string>
+	</array>
+	<key>UIViewControllerBasedStatusBarAppearance</key>
+	<false/>
+	<key>com.apple.developer.nfc.readersession.felica.systemcodes</key>
+	<array>
+		<string>8005</string>
+		<string>8008</string>
+		<string>0003</string>
+		<string>fe00</string>
+		<string>90b7</string>
+		<string>927a</string>
+		<string>86a7</string>
+	</array>
+	<key>com.apple.developer.nfc.readersession.iso7816.select-identifiers</key>
+	<array>
+		<string>A0000002471001</string>
+		<string>A000000003101001</string>
+		<string>A000000003101002</string>
+		<string>A0000000041010</string>
+		<string>A0000000042010</string>
+		<string>A0000000044010</string>
+		<string>44464D46412E44466172653234313031</string>
+		<string>D2760000850100</string>
+		<string>D2760000850101</string>
+		<string>00000000000000</string>
+	</array>
+</dict>
+</plist>

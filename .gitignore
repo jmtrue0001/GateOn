@@ -6,6 +6,43 @@
 *.swp
 .buildlog/
 .history
+.DS_Store
+.atom/
+.svn/
+migrate_working_dir/
+.env
+
+# Flutter/Dart/Pub related
+**/doc/api/
+**/ios/Flutter/.last_build_id
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub-cache/
+.pub/
+/build/
+.firebase/
+*.g.dart
+
+# Symbolication related
+app.*.symbols
+
+# Obfuscation related
+app.*.map.json
+
+# Android Studio will place build artifacts here
+/android/app/debug
+/android/app/profile
+/android/app/release
+/android/keystore/
+/android/keystore/keystore.password
+
+ IntelliJ related
+*.iml
+*.ipr
+*.iws
+.idea/
 
 
 

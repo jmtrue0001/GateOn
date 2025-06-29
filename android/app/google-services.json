@@ -1,0 +1,46 @@
+{
+  "project_info": {
+    "project_number": "842752158199",
+    "project_id": "laonstory-m-guard",
+    "storage_bucket": "laonstory-m-guard.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:842752158199:android:7179e49ec6225f877da6f2",
+        "android_client_info": {
+          "package_name": "com.laonstory.mguard"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "842752158199-pv5egde4u3m2rg2kiffoq33lqn4r4pfm.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBhNkg7pt4dGRF-T2b65O3R2BlmK5Zf00k"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "842752158199-pv5egde4u3m2rg2kiffoq33lqn4r4pfm.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "842752158199-0rg2t1qp9be8oudi2ml5al10pv7juer0.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.laonstory.mguardApp"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

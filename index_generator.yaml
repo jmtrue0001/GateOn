@@ -1,0 +1,17 @@
+index_generator:
+  exclude:
+    - '**.g.dart'
+    - '{_,**/_}*.dart'
+  # Define the paths of the folders in which to generate the index files
+  indexes:
+    - path: lib/core
+    - path: lib/features
+      include:
+        - '**/widget'
+        - '**/ui'
+      name: features
+    - path : lib/admin
+      include:
+        - '**/widget'
+        - '**/ui'
+      name: admin

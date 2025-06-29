@@ -1,0 +1,79 @@
+<resources>
+    <string name="app_name">TPASS 장치 관리자</string>
+    <string name="device_admin_description">TPASS 안드로이드 관리자</string>
+    <string name="text_actionCamera">카메라 사용 제한</string>
+    <string name="text_actionAdminActive">관리자 권한</string>
+
+    <!-- knox -->
+    <string name="enterprise_device_admin">Knox SDK Sample</string>
+    <string name="enterprise_device_admin_description">DeviceAdmin class</string>
+    <string name="activate_admin">Activate Admin</string>
+    <string name="deactivate_admin">Deactivate Admin</string>
+    <string name="activate_license">Activate license</string>
+    <string name="activate_premium_license">Activate premium license</string>
+    <string name="grant_permissions">Grant Permissions</string>
+    <string name="toggle_camera">Toggle Camera</string>
+    <string name="toggle_tima_state">Toggle TIMA Keystore state</string>
+
+    <!-- UI elements -->
+    <string name="license_progress">Activating KPE license...</string>
+    <string name="deactivate_license_progress">Deactivating KPE license...</string>
+    <string name="backwards_compatible_key_activation">Activating backwards compatible key...</string>
+    <string name="admin_cancelled">Device admin activation cancelled</string>
+    <string name="admin_activated">Device administrator activated</string>
+    <string name="activating_admin">Activating device administrator...</string>
+    <string name="deactivating_admin">Deactivating device administrator... </string>
+    <string name="camera_state">Is camera state enabled: %1$b</string>
+    <string name="camera_fail">Failed to change camera state</string>
+    <string name="tima_keystore_state">Is TIMA Keystore enabled: %1$b</string>
+    <string name="tima_keystore_fail">Failed to change TIMA Keystore state</string>
+
+    <!-- License activation messages -->
+    <string name="no_intent">License activation intent is not available</string>
+    <string name="no_intent_action">License activation intent action is not available</string>
+    <string name="kpe_activated_succesfully">KPE activated successfully</string>
+    <string name="elm_action_successful">Action successful</string>
+
+    <!-- KPE License Error Codes -->
+    <string name="err_kpe_internal">KPE: Internal error</string>
+    <string name="err_kpe_internal_server">KPE: Internal server error</string>
+    <string name="err_kpe_licence_invalid_license">KPE: Invalid license</string>
+    <string name="err_kpe_invalid_package_name">KPE: Invalid package name</string>
+    <string name="err_kpe_licence_terminated">KPE: License terminated</string>
+    <string name="err_kpe_network_disconnected">KPE: Network disconnected</string>
+    <string name="err_kpe_network_general">KPE: Network general error</string>
+    <string name="err_kpe_unknown">KPE: Error unknown</string>
+    <string name="err_kpe_code_unknown">KPE: Error code unknown %1$s, status %2$s</string>
+    <string name="err_kpe_not_current_date">KPE: Not current date</string>
+    <string name="err_kpe_sig_mismatch">KPE: Caller package signature mismatch</string>
+    <string name="err_kpe_ver_code_mismatch">KPE: Caller package version code mismatch</string>
+    <string name="err_kpe_null_params">KPE: NULL params</string>
+    <string name="err_kpe_user_disagrees_license_agreement">KPE: User disagrees EULA</string>
+    <string name="err_kpe_license_expired">KPE: License expired</string>
+    <string name="err_kpe_license_deactivated">KPE: License deactivated</string>
+    <string name="err_kpe_license_quantity_exhausted">KPE: License quantity exhausted</string>
+    <string name="err_kpe_license_activation_not_found">KPE: License activation not found</string>
+    <string name="err_kpe_license_quantity_exhausted_on_auto_release">KPE: License quantity exhausted on automatic release</string>
+
+    <!-- Backwards-Compatible Key Error Codes -->
+    <string name="err_elm_internal">EnterpriseLicenseManager: Internal error</string>
+    <string name="err_elm_internal_server">EnterpriseLicenseManager: Internal server error</string>
+    <string name="err_elm_licence_invalid_license">EnterpriseLicenseManager: Invalid license</string>
+    <string name="err_elm_invalid_package_name">EnterpriseLicenseManager: Invalid package name</string>
+    <string name="err_elm_licence_terminated">EnterpriseLicenseManager: License terminated</string>
+    <string name="err_elm_network_disconnected">EnterpriseLicenseManager: Network disconnected</string>
+    <string name="err_elm_network_general">EnterpriseLicenseManager: Network general error</string>
+    <string name="err_elm_unknown">EnterpriseLicenseManager: Error unknown</string>
+    <string name="err_elm_code_unknown">EnterpriseLicenseManager: Error code unknown %1$s, status %2$s</string>
+    <string name="err_elm_not_current_date">EnterpriseLicenseManager: Not current date</string>
+    <string name="err_elm_sig_mismatch">EnterpriseLicenseManager: Caller package signature mismatch</string>
+    <string name="err_elm_ver_code_mismatch">EnterpriseLicenseManager: Caller package version code mismatch</string>
+    <string name="err_elm_null_params">EnterpriseLicenseManager: NULL params</string>
+    <string name="err_elm_user_disagrees_license_agreement">EnterpriseLicenseManager: User disagrees EULA</string>
+
+    <!-- API level -->
+    <string name="api_level_message">This device does not meet the minimum requirements to run.
+        API level %1$d detected. Requires level %2$d.</string>
+    <string name="api_level_notice">App Requirement</string>
+
+</resources>

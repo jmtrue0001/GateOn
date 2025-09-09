@@ -20,6 +20,8 @@ class ListDataWidget<T> extends StatelessWidget {
     this.addButton = false,
     this.onAdd,
     this.searchVisible = true,
+    this.onExcel,
+    this.onCount,
   }) : super(key: key);
 
   final String title;
@@ -36,7 +38,8 @@ class ListDataWidget<T> extends StatelessWidget {
   final bool addButton;
   final bool searchVisible;
   final Function()? onAdd;
-
+  final Function()? onExcel;
+  final Function(int)? onCount;
 
   @override
   Widget build(BuildContext context) {
@@ -58,6 +61,33 @@ class ListDataWidget<T> extends StatelessWidget {
               Row(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
+                  if(onExcel != null)
+                  ElevatedButton(
+                    // style: ButtonStyle(
+                    //   backgroundColor: MaterialStateProperty.all<Color>(Colors.green)
+                    // ),
+                    onPressed:
+                      onExcel
+                    ,
+                    child: const Text('조회된 로그 저장'),
+                  ),
+                  const SizedBox(width: 16),
+                  if(onCount != null)
+                    DropdownButton<int>(
+                      value: meta?.sizePerPage,
+                      items: [10, 30, 50, 100].map((count) {
+                        return DropdownMenuItem<int>(
+                          value: count,
+                          child: Text('$count 개씩 조회'),
+                        );
+                      }).toList(),
+                      onChanged: (value) {
+                        if (value != null) {
+                          onCount?.call(value); // 기존 onCount 콜백 호출
+                        }
+                      },
+                    ),
+                  const SizedBox(width: 16),
                   if (meta != null) Center(child: Text('검색 결과 수 ${meta?.totalCount ?? 0}건', style: textTheme(context).krBody1)),
                   const SizedBox(width: 16),
                   if (searchVisible)SizedBox(
@@ -102,7 +132,7 @@ class ListDataWidget<T> extends StatelessWidget {
                               crossAxisAlignment: CrossAxisAlignment.center,
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                Text('검색', style: textTheme(context).krSubtext1.copyWith(color: gray0)),
+                                Text('디바이스ID', style: textTheme(context).krSubtext1.copyWith(color: gray0)),
                                 // const SizedBox(width: 32), const Icon(Icons.keyboard_arrow_down, color: gray0)
                               ],
                             ),

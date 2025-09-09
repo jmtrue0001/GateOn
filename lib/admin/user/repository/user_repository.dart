@@ -3,10 +3,10 @@ import '../../../core/core.dart';
 class UserApi with CommonRepository {
   static UserApi get to => UserApi();
 
-  Future<ListModel<User>> getUsers(int page, String query, FilterType? filterType, OrderType? orderType) async {
+  Future<ListModel<User>> getUsers(int page, String query, FilterType? filterType, OrderType? orderType, int? count) async {
     try {
       final sortData = filterType == FilterType.none || filterType == null || orderType == null ? '' : '&sort=${filterType.name},${orderType.name}';
-      var result = await get(visitorUrl, query: 'page=$page&size=10&query=$query$sortData', token: TokenType.accessToken);
+      var result = await get(visitorUrl, query: 'page=$page&size=${count ?? 10}&query=$query$sortData', token: TokenType.accessToken);
       switch (result.$1) {
         case StatusCode.success:
           return ListModel.fromJson(result.$2);

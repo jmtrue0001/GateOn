@@ -51,11 +51,11 @@ class HomePage extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('제조사: $manufacturer'),
-            Text('모델명: $model'),
-            Text('OS 버전: $osVersion'),
-            Text('디바이스 ID: $deviceId'),
-            Text('앱 버전: ${appInfo.version}'),
+            Text('제조사: ${AppConfig.to.manufacturer}'),
+            Text('모델명: ${AppConfig.to.model}'),
+            Text('OS 버전: ${AppConfig.to.osVersion}'),
+            Text('디바이스 ID: ${AppConfig.to.storage.read(key: "deviceId")}'),
+            Text('앱 버전: ${AppConfig.to.appVersion}'),
           ],
         ),
         actions: [

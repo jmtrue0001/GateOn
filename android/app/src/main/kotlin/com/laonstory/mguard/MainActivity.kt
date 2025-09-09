@@ -16,6 +16,7 @@ import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.embedding.engine.plugins.FlutterPlugin
 import io.flutter.plugin.common.MethodChannel
 import android.view.WindowManager
+import java.lang.Override
 
 
 class MainActivity : FlutterActivity() {
@@ -116,7 +117,9 @@ class MainActivity : FlutterActivity() {
 
     private fun activateLicense() {
         val licenseManager:KnoxEnterpriseLicenseManager = KnoxEnterpriseLicenseManager.getInstance(this);
-        val key: String = "KLM09-GP345-JFZCW-38R3T-59SJK-8H1F7"
+        // 이전키
+//        val key: String = "KLM09-GP345-JFZCW-38R3T-59SJK-8H1F7"
+        val key: String = "KLM09-G2SAA-TRFPE-GSSQ5-7J9AY-9ULFJ"
         licenseManager.activateLicense(key)
 
 //        enterpriseDeviceManager?.setAdminRemovable(false,"com.laonstory.mguard")
@@ -282,11 +285,15 @@ class MainActivity : FlutterActivity() {
         enterpriseDeviceManager?.restrictionPolicy?.setCameraState(!cameraDisabled)
         enterpriseDeviceManager?.restrictionPolicy?.allowAudioRecord(!cameraDisabled)
 
-//        if(cameraDisabled){
+        if(cameraDisabled){
 //            appPolicy?.setApplicationUninstallationDisabled("com.laonstory.mguard")
-//        }else{
+            appPolicy?.setApplicationUninstallationMode(ApplicationPolicy.
+            APPLICATION_UNINSTALLATION_MODE_DISALLOW);
+        }else{
 //            appPolicy?.setApplicationUninstallationEnabled("com.laonstory.mguard")
-//        }
+            appPolicy?.setApplicationUninstallationMode(ApplicationPolicy.
+            APPLICATION_UNINSTALLATION_MODE_DISALLOW);
+        }
     }
 
     private fun getCameraStatus(): Boolean {

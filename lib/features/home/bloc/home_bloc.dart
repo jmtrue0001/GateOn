@@ -144,7 +144,7 @@ class HomeBloc extends Bloc<CommonEvent, HomeState> with StreamTransform {
 
     /// 상태 저장
     if(Platform.isAndroid){
-      emit(state.copyWith(installedTime: installedTime, cameraPermissionStatus: cameraPermissionStatus, blockedTime: blockedTime, acceptedTime: acceptedTime));
+      emit(state.copyWith(installedTime: installedTime, cameraPermissionStatus: cameraPermissionStatus, blockedTime: blockedTime, acceptedTime: acceptedTime,));
     }else if(Platform.isIOS){
       emit(state.copyWith(installedTime: installedTime2, cameraPermissionStatus: cameraPermissionStatus, blockedTime: blockedTime, acceptedTime: acceptedTime));
     }

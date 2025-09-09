@@ -173,6 +173,16 @@ class AppConfig {
 
   DeviceInfoPlugin get deviceInfo => _deviceInfoPlugin;
 
+  static String? _manufacturer;
+  static String? _model;
+  static String? _osVersion;
+  static String? _appVersion;
+
+  String? get manufacturer => _manufacturer;
+  String? get model => _model;
+  String? get osVersion => _osVersion;
+  String? get appVersion => _appVersion;
+
   static Future init({required VoidCallback callback}) async {
     WidgetsFlutterBinding.ensureInitialized();
     setPathUrlStrategy();
@@ -186,6 +196,10 @@ class AppConfig {
         options: DefaultFirebaseOptions.currentPlatform,
       );
       if(Platform.isAndroid) {
+        final info = await _deviceInfoPlugin.androidInfo;
+        _manufacturer = info.manufacturer;
+        _model = info.model;
+        _osVersion = 'Android ${info.version.release}';
         if ((await _storage.read(key: 'time_installed')) == null) {
           _storage.write(key: 'time_installed', value: '${DateTime
               .now()
@@ -194,12 +208,19 @@ class AppConfig {
       }
 
       if(Platform.isIOS){
+        final info = await _deviceInfoPlugin.iosInfo;
+        _manufacturer = 'Apple';
+        _model = info.utsname.machine;
+        _osVersion = '${info.systemName} ${info.systemVersion}';
+
         if(_shared.getString('time_installed') == null){
           _shared.setString( 'time_installed', '${DateTime
               .now()
               .millisecondsSinceEpoch}');
         }
       }
+      final appInfo = await PackageInfo.fromPlatform();
+      _appVersion = appInfo.version;
     }
     if ((await _storage.read(key: 'time_installed')) == null) {
       _storage.write(key: 'time_installed', value: '${DateTime.now().millisecondsSinceEpoch}');

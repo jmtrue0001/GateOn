@@ -71,12 +71,18 @@ class UserPage extends StatelessWidget {
                       width: width,
                       child: IntrinsicHeight(
                         child: ListDataWidget(
+                          onExcel: (){
+                            context.read<UserBloc>().add(ExcelDownload());
+                          },
                           title: '방문객 리스트',
                           filterChanged: (value) {
                             context.read<UserBloc>().add(Paginate(page: 1, query: state.query, filterType: value?.$2, orderType: value?.$3));
                           },
                           onPaginate: (page, data) {
-                            context.read<UserBloc>().add(Paginate(page: page, query: state.query, filterType: state.filterType, orderType: state.orderType));
+                            context.read<UserBloc>().add(Paginate(page: page,count: state.meta?.sizePerPage ,query: state.query, filterType: state.filterType, orderType: state.orderType));
+                          },
+                          onCount:(count) {
+                            context.read<UserBloc>().add(Paginate(page: state.page, count: count,query: state.query, filterType: state.filterType, orderType: state.orderType));
                           },
                           onSearch: (data) {
                             context.read<UserBloc>().add(Paginate(page: 1, query: data, filterType: state.filterType, orderType: state.orderType));
@@ -88,6 +94,10 @@ class UserPage extends StatelessWidget {
                             CommonColumn('차단일시'),
                             CommonColumn('허용일시'),
                             CommonColumn('유저 디바이스ID'),
+                            CommonColumn('제조사'),
+                            CommonColumn('모델명'),
+                            CommonColumn('앱버전'),
+                            CommonColumn('OS 버전'),
                             CommonColumn(
                               '정상 이용여부',
                             ),
@@ -262,6 +272,10 @@ class UserPage extends StatelessWidget {
                   CommonCell((timeParser(element.value.disabledAt, true))),
                   CommonCell((timeParser(element.value.enabledAt, true))),
                   CommonCell(element.value.deviceId ?? '-'),
+                  CommonCell(element.value.osType ?? '-'),
+                  CommonCell(element.value.deviceModel ?? '-'),
+                  CommonCell(element.value.osVersion ?? '-'),
+                  CommonCell(element.value.appVersion ?? '-'),
                   CommonCell(element.value.isActive),
                 ]))
         .toList();

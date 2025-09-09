@@ -94,6 +94,9 @@ class SplashBloc extends Bloc<CommonEvent, SplashState> {
       if (storeVersion != null && storeVersion.toString().compareTo(packageInfo.version) != 0 && storeVersion.toString().compareTo("") != 0 && Version.parse(storeVersion) > Version.parse(packageInfo.version) ) {
         emit(state.copyWith(status: CommonStatus.failure,errorMessage: getStoreUrlValue(packageInfo.packageName, packageInfo.appName) ));
       }else{
+        if(Version.parse(AppConfig.to.appVersion ?? "0") > Version.parse(AppConfig.to.shared.getString('app_version') ?? "1")){
+
+        }
         final guide = await AppConfig.to.storage.read(key: 'guide_status') == 'true';
         final profileStatus = await AppConfig.to.storage.read(key: 'profile_status');
         logger.d(profileStatus);

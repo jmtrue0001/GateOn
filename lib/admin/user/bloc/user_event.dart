@@ -15,3 +15,7 @@ class DetailPaginate extends UserEvent {
 class ReInitial extends UserEvent {
   const ReInitial();
 }
+
+class ExcelDownload extends UserEvent{
+  const ExcelDownload();
+}

@@ -50,13 +50,14 @@ class Delete<T> extends CommonEvent {
 }
 
 class Paginate<T> extends CommonEvent<T> {
-  const Paginate({this.id, this.page, this.query, this.filterType, this.orderType});
+  const Paginate({this.id, this.page, this.query, this.filterType, this.orderType, this.count});
 
   final String? id;
   final int? page;
   final String? query;
   final FilterType? filterType;
   final OrderType? orderType;
+  final int? count;
 }
 
 class Search<T> extends CommonEvent<T> {

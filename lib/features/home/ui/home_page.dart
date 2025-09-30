@@ -54,7 +54,7 @@ class HomePage extends StatelessWidget {
             Text('제조사: ${AppConfig.to.manufacturer}'),
             Text('모델명: ${AppConfig.to.model}'),
             Text('OS 버전: ${AppConfig.to.osVersion}'),
-            Text('디바이스 ID: ${AppConfig.to.storage.read(key: "deviceId")}'),
+            Text('디바이스 ID: $deviceId'),
             Text('앱 버전: ${AppConfig.to.appVersion}'),
           ],
         ),

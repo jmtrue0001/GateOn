@@ -73,7 +73,6 @@ class HomeBloc extends Bloc<CommonEvent, HomeState> with StreamTransform {
     final code = await AppConfig.to.storage.read(key: 'code');
     final platform =  MethodChannel('mguard/android');
     final initialLink = await getInitialLink();
-    var isUninstall = false;
     if(initialLink!= null){
       final uri = Uri.parse(initialLink);
       logger.d('설치');

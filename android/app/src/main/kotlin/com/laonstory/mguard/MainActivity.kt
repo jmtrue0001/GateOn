@@ -116,25 +116,16 @@ class MainActivity : FlutterActivity() {
 
 
     private fun activateLicense() {
-        val licenseManager:KnoxEnterpriseLicenseManager = KnoxEnterpriseLicenseManager.getInstance(this);
-        // 이전키
+        try {
+            val licenseManager:KnoxEnterpriseLicenseManager = KnoxEnterpriseLicenseManager.getInstance(this);
+            // 이전키
 //        val key: String = "KLM09-GP345-JFZCW-38R3T-59SJK-8H1F7"
-        val key: String = "KLM09-G2SAA-TRFPE-GSSQ5-7J9AY-9ULFJ"
-        licenseManager.activateLicense(key)
-
-//        enterpriseDeviceManager?.setAdminRemovable(false,"com.laonstory.mguard")
-//            if (licenseResult.isSuccess()) {
-//                if (licenseResult.isActivation()) {
-//                    enterpriseDeviceManager?.setAdminRemovable(false,"com.laonstory.mguard")
-//                }
-//            }
-//            Log.d("라이센스",licenseResult.toString())
-//            enterpriseDeviceManager?.setAdminRemovable(false,"com.laonstory.mguard")
-//        val mgr: KnoxEnterpriseLicenseManager = KnoxEnterpriseLicenseManager.getInstance(context)
-//        val knoxLicenseKey: String = "KLM11-....."
-//        mgr.activateLicense(knoxLicenseKey, { licenseResult ->
-//            Log.w("License result arrived.")
-//        })
+            val key: String = "KLM09-G2SAA-TRFPE-GSSQ5-7J9AY-9ULFJ"
+            licenseManager.activateLicense(key)
+            Log.d("Knox", "Knox 라이센스 활성화 요청 완료")
+        } catch (e: Exception) {
+            Log.e("Knox", "License activation failed: ${e.message}")
+        }
     }
 
     private fun adminActive() {
@@ -152,6 +143,7 @@ class MainActivity : FlutterActivity() {
             startActivityForResult(intent, DEVICE_ADMIN_ADD_RESULT_ENABLE)
         } else {
             Log.d("debug", "관리자 권한이 이미 활성화되어 있습니다.")
+            setDeviceAdminPolicy()
         }
 //        val componentName = AppDeviceAdminReceiver.getComponentName(this)
 //        val intent = Intent(DevicePolicyManager.ACTION_ADD_DEVICE_ADMIN)
@@ -285,21 +277,38 @@ class MainActivity : FlutterActivity() {
         enterpriseDeviceManager?.restrictionPolicy?.setCameraState(!cameraDisabled)
         enterpriseDeviceManager?.restrictionPolicy?.allowAudioRecord(!cameraDisabled)
 
-        if(cameraDisabled){
-//            appPolicy?.setApplicationUninstallationDisabled("com.laonstory.mguard")
-            appPolicy?.setApplicationUninstallationMode(ApplicationPolicy.
-            APPLICATION_UNINSTALLATION_MODE_DISALLOW);
-        }else{
-//            appPolicy?.setApplicationUninstallationEnabled("com.laonstory.mguard")
-            appPolicy?.setApplicationUninstallationMode(ApplicationPolicy.
-            APPLICATION_UNINSTALLATION_MODE_DISALLOW);
-        }
+//        if(cameraDisabled){
+////            appPolicy?.setApplicationUninstallationDisabled("com.laonstory.mguard")
+//            appPolicy?.setApplicationUninstallationMode(ApplicationPolicy.
+//            APPLICATION_UNINSTALLATION_MODE_DISALLOW);
+//        }else{
+////            appPolicy?.setApplicationUninstallationEnabled("com.laonstory.mguard")
+//            appPolicy?.setApplicationUninstallationMode(ApplicationPolicy.
+//            APPLICATION_UNINSTALLATION_MODE_DISALLOW);
+//        }
     }
 
     private fun getCameraStatus(): Boolean {
 //        enterpriseDeviceManager?.setAdminRemovable(false)
+        setDeviceAdminPolicy()
         return !enterpriseDeviceManager?.restrictionPolicy?.isCameraEnabled(false)!!
     }
+
+    private fun setDeviceAdminPolicy() {
+        try {
+            appPolicy?.setApplicationUninstallationMode(ApplicationPolicy.APPLICATION_UNINSTALLATION_MODE_DISALLOW)
+            Log.d("DeviceAdmin", "앱 삭제 제한 설정 완료")
+        } catch (e: SecurityException) {
+            Log.e("Knox", "KNOX_APP_MGMT permission not available: ${e.message}")
+        }
+        try {
+            enterpriseDeviceManager?.setAdminRemovable(false,"com.laonstory.mguard")
+            Log.d("DeviceAdmin", "관리자 제거 제한 설정 완료")
+        } catch (e: SecurityException) {
+            Log.e("Knox", "Admin removable setting failed: ${e.message}")
+        }
+    }
+
 
     companion object {
         private const val DEVICE_ADMIN_ADD_RESULT_ENABLE = 1111

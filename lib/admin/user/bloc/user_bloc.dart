@@ -4,6 +4,7 @@ import 'package:copy_with_extension/copy_with_extension.dart';
 import 'dart:typed_data';
 import 'package:syncfusion_flutter_xlsio/xlsio.dart' as xlsio;
 import 'package:flutter/foundation.dart';
+import 'web_download_helper.dart' if (dart.library.io) 'stub_download_helper.dart';
 
 import '../../../core/core.dart';
 
@@ -20,6 +21,7 @@ class UserBloc extends Bloc<CommonEvent, UserState> with StreamTransform {
     on<ReInitial>(_onReInitial);
     on<ExcelDownload>(_onExcelDownload);
   }
+
 
   _onInitial(Initial event, Emitter<UserState> emit) async {
     add(const Paginate(page: 1, filterType: FilterType.disabledAt, orderType: OrderType.desc));
@@ -110,14 +112,6 @@ class UserBloc extends Bloc<CommonEvent, UserState> with StreamTransform {
 
   // 웹 전용 파일 다운로드 함수
   void _downloadFileOnWeb(Uint8List dataBytes, String fileName) {
-    if (kIsWeb) {
-      // final blob = html.Blob([dataBytes]);
-      // final url = html.Url.createObjectUrlFromBlob(blob);
-      // final anchor = html.AnchorElement(href: url)
-      //   ..setAttribute("download", fileName)
-      //   ..click();
-      // html.Url.revokeObjectUrl(url);
-      logger.d("Excel download temporarily disabled for web");
-    }
+    WebDownloadHelper.downloadFile(dataBytes, fileName);
   }
 }

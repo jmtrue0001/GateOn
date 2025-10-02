@@ -14,7 +14,7 @@ import 'package:intl/intl.dart';
 import 'package:lottie/lottie.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:qr_code_scanner/qr_code_scanner.dart';
+import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/core.dart';
@@ -70,7 +70,7 @@ class HomePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final TextEditingController controller = TextEditingController();
-    QRViewController? qrViewController;
+    MobileScannerController? qrViewController;
     final GlobalKey qrKey = GlobalKey(debugLabel: 'QR');
     return BlocProvider(
       create: (context) => HomeBloc(const Ticker())..add(const Initial()),

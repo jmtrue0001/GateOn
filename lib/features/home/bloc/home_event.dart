@@ -50,7 +50,7 @@ class Manual extends HomeEvent {
 class ScanQR extends HomeEvent {
   const ScanQR({this.barcode,this.tagId,this.mode});
 
-  final Barcode? barcode;
+  final BarcodeCapture? barcode;
   final String? mode;
   final String? tagId;
 }

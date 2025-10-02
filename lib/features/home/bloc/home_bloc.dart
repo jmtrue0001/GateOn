@@ -12,8 +12,7 @@ import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'package:nfc_manager/nfc_manager.dart';
 import 'package:nfc_manager/platform_tags.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:qr_code_scanner/qr_code_scanner.dart';
-import 'package:uni_links/uni_links.dart';
+import 'package:mobile_scanner/mobile_scanner.dart';
 
 import '../../../main.dart';
 import '../repository/home_repository.dart';
@@ -72,35 +71,34 @@ class HomeBloc extends Bloc<CommonEvent, HomeState> with StreamTransform {
     final acceptedTime = await AppConfig.to.storage.read(key: 'time_accepted');
     final code = await AppConfig.to.storage.read(key: 'code');
     final platform =  MethodChannel('mguard/android');
-    final initialLink = await getInitialLink();
-    if(initialLink!= null){
-      final uri = Uri.parse(initialLink);
-      logger.d('설치');
-      logger.d(uri);
-      logger.d(uri.host);
-      logger.d(uri.path);
-      if(uri.host == 'flutter' && uri.path == '/specificFunction'){
-        logger.d('차단실행');
-        add(ScanQR(tagId:uri.queryParameters['id']));
-      }else{
-        logger.d('호스트 또는 경로가 일치하지 않습니다.');
-      }
-
-    }else{
-      _QrSubscription = linkStream.listen((String? link) {
-        if(link != null){
-          final uri = Uri.parse(link);
-          if (uri.host == 'flutter' && uri.path == '/specificFunction') {
-            add(ScanQR(tagId:uri.queryParameters['id']));
-
-          }else{
-            add(Error(errorMessage: '등록된 QR이 없거나 qr코드가 일치하지 않습니다.'));
-          }
-        }
-      },onError: (e){
-        add(Error(errorMessage: e.toString()));
-      });
-    }
+    // TODO: Implement deep linking when app_links is properly configured
+    // final initialLink = await getInitialLink();
+    // if(initialLink!= null){
+    //   final uri = Uri.parse(initialLink);
+    //   logger.d('설치');
+    //   logger.d(uri);
+    //   logger.d(uri.host);
+    //   logger.d(uri.path);
+    //   if(uri.host == 'flutter' && uri.path == '/specificFunction'){
+    //     logger.d('차단실행');
+    //     add(ScanQR(tagId:uri.queryParameters['id']));
+    //   }else{
+    //     logger.d('호스트 또는 경로가 일치하지 않습니다.');
+    //   }
+    // }else{
+    //   _QrSubscription = linkStream.listen((String? link) {
+    //     if(link != null){
+    //       final uri = Uri.parse(link);
+    //       if (uri.host == 'flutter' && uri.path == '/specificFunction') {
+    //         add(ScanQR(tagId:uri.queryParameters['id']));
+    //       }else{
+    //         add(Error(errorMessage: '등록된 QR이 없거나 qr코드가 일치하지 않습니다.'));
+    //       }
+    //     }
+    //   },onError: (e){
+    //     add(Error(errorMessage: e.toString()));
+    //   });
+    // }
 
 
     /// code가 있으면 기업 정보를 가져온다.
@@ -304,7 +302,8 @@ class HomeBloc extends Bloc<CommonEvent, HomeState> with StreamTransform {
     if(event.barcode == null && event.tagId != null){
       tagId = event.tagId;
     }else if (event.tagId == null && event.barcode != null){
-      tagId = Uri.parse(event.barcode!.code!).queryParameters['id'];
+      final rawValue = event.barcode!.barcodes.first.rawValue;
+      tagId = rawValue != null ? Uri.parse(rawValue).queryParameters['id'] : null;
     }
     logger.d('qr태그${tagId ?? '없음'}');
     await HomeRepository.to.getProfileWithDevice(tagId ?? '').then((data) async {

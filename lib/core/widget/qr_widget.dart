@@ -5,7 +5,7 @@ import 'package:TPASS/features/home/bloc/home_bloc.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
-import 'package:qr_code_scanner/qr_code_scanner.dart';
+import 'package:mobile_scanner/mobile_scanner.dart';
 
 import '../config/style.dart';
 import '../util/static_dialog.dart';
@@ -22,78 +22,60 @@ class QrWidget extends StatefulWidget {
 class _QrWidgetState extends State<QrWidget> {
   final HomeBloc bloc;
   _QrWidgetState({required this.bloc});
-  late QRViewController qrViewController;
+  late MobileScannerController qrViewController;
   final GlobalKey qrKey = GlobalKey(debugLabel: 'QR');
 
   @override
-  Widget build(BuildContext context) {
-    var scanArea = (MediaQuery.of(context).size.width < 400 ||
-        MediaQuery.of(context).size.height < 400)
-        ? 150.0
-        : 200.0;
-    return
-      BlocProvider(
-          create: (context) => HomeBloc(const Ticker()),
-      child:BlocBuilder<HomeBloc, HomeState>(
-        buildWhen: (previous, current) => previous.status != current.status || previous.cameraPermissionStatus != current.cameraPermissionStatus,
-        builder: (context, state) {
-          return Stack(
-            children: [
-              QRView(
-                key: qrKey,
-                onQRViewCreated: _onQRViewCreated,
-                overlay: QrScannerOverlayShape(
-                    borderColor: Colors.red,
-                    borderRadius: 10,
-                    borderLength: 30,
-                    borderWidth: 10,
-                    cutOutSize: scanArea),
-                onPermissionSet: (ctrl, p) => _onPermissionSet(context, ctrl, p),
-              ),
-              Positioned(
-                  top: 16,
-                  right: 16,
-                  child: IconButton(
-
-                    onPressed: () {
-                      qrViewController.dispose();
-                      Navigator.pop(context);
-                    },
-                    icon: Icon(Icons.close, color: Colors.white,),
-                  )),
-            ],
-          );
-        }));
-
+  void initState() {
+    super.initState();
+    qrViewController = MobileScannerController();
   }
 
-  void _onQRViewCreated(QRViewController controller) {
-    String? lastScannedBarcode;
-    setState(() {
-      qrViewController = controller;
-    });
+  @override
+  Widget build(BuildContext context) {
+    return BlocProvider(
+        create: (context) => HomeBloc(const Ticker()),
+        child: BlocBuilder<HomeBloc, HomeState>(
+            buildWhen: (previous, current) => previous.status != current.status || previous.cameraPermissionStatus != current.cameraPermissionStatus,
+            builder: (context, state) {
+              return Stack(
+                children: [
+                  MobileScanner(
+                    key: qrKey,
+                    controller: qrViewController,
+                    onDetect: _onQRViewCreated,
+                  ),
+                  Positioned(
+                      top: 16,
+                      right: 16,
+                      child: IconButton(
+                        onPressed: () {
+                          qrViewController.dispose();
+                          Navigator.pop(context);
+                        },
+                        icon: Icon(Icons.close, color: Colors.white,),
+                      )),
+                ],
+              );
+            }));
+  }
 
-    qrViewController.scannedDataStream.listen((scanData) {
-      logger.d('스캔원시데이터'+scanData.code.toString());
-      final scannedBarcode = scanData.code;
+  String? lastScannedBarcode;
+
+  void _onQRViewCreated(BarcodeCapture capture) {
+    if (capture.barcodes.isNotEmpty) {
+      final barcode = capture.barcodes.first;
+      logger.d('스캔원시데이터${barcode.rawValue}');
+      final scannedBarcode = barcode.rawValue;
       if(scannedBarcode != null && scannedBarcode != lastScannedBarcode){
         lastScannedBarcode = scannedBarcode;
 
-        qrViewController.pauseCamera();
+        qrViewController.stop();
         if (Navigator.canPop(context)) {
           Navigator.pop(context);
         }
-        bloc.add(ScanQR(barcode: scanData));
+        bloc.add(ScanQR(barcode: capture));
       }
-    });
-  }
-
-  void _onPermissionSet(BuildContext context, QRViewController ctrl, bool p) {
-    log('${DateTime.now().toIso8601String()}_onPermissionSet $p');
-    if (!p) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('no Permission')),
-      );
     }
   }
 

@@ -88,28 +88,57 @@ class SplashBloc extends Bloc<CommonEvent, SplashState> {
 
       var storeVersion = Platform.isAndroid ? await _getAndroidStoreVersion(packageInfo) : Platform.isIOS ? await _getiOSStoreVersion(packageInfo) : "";
 
-      // logger.d('my device version : ${packageInfo.version}');
-      // logger.d('current store version: ${storeVersion.toString()}');
+      logger.d('my device version : ${packageInfo.version}');
+      logger.d('current store version: ${storeVersion.toString()}');
 
-      if (storeVersion != null && storeVersion.toString().compareTo(packageInfo.version) != 0 && storeVersion.toString().compareTo("") != 0 && Version.parse(storeVersion) > Version.parse(packageInfo.version) ) {
+      if (storeVersion != null && storeVersion.toString().isNotEmpty && storeVersion.toString().compareTo("") != 0 && Version.parse(storeVersion) > Version.parse(packageInfo.version) ) {
         emit(state.copyWith(status: CommonStatus.failure,errorMessage: getStoreUrlValue(packageInfo.packageName, packageInfo.appName) ));
       }else{
-        if(Version.parse(AppConfig.to.appVersion ?? "0") > Version.parse(AppConfig.to.shared.getString('app_version') ?? "1")){
-
-        }
-        final guide = await AppConfig.to.storage.read(key: 'guide_status') == 'true';
+        // final guide = await AppConfig.to.storage.read(key: 'guide_status') == 'true';
         final profileStatus = await AppConfig.to.storage.read(key: 'profile_status');
-        logger.d(profileStatus);
         if (profileStatus == 'ban') {
           emit(state.copyWith(status: CommonStatus.success, route: '/ban'));
           return;
         }
-        if (!guide) {
-          emit(state.copyWith(status: CommonStatus.success, route: '/permission'));
-        } else {
-          /// permission 및 가이드 진행함
-          ///
+        // if (!guide) {
+        //   emit(state.copyWith(status: CommonStatus.success, route: '/permission'));
+        // } else {
+        //
+        //
 
+        var deviceManage = true;
+        if (Platform.isAndroid) {
+          deviceManage = await AndroidMethodChannel.to.checkDeviceAdminStatus();
+          logger.d(deviceManage);
+          if (!deviceManage) {
+            await AndroidMethodChannel.to.enableDeviceAdmin().then((value) async {
+              deviceManage = await AndroidMethodChannel.to.checkDeviceAdminStatus();
+            });
+          }
+          await AndroidMethodChannel.to.showLicense();
+          logger.d(deviceManage);
+        }
+        Map<Permission, PermissionStatus> statuses = await [
+          Permission.locationWhenInUse,
+          Permission.camera,
+          Permission.bluetooth,
+          Permission.bluetoothScan,
+        ].request();
+
+        var camera = statuses[Permission.camera] ?? PermissionStatus.denied;
+        var location = statuses[Permission.locationWhenInUse] ?? PermissionStatus.denied;
+        var bluetooth = statuses[Permission.bluetooth] ?? PermissionStatus.denied;
+        if (Platform.isAndroid) {
+          await AppConfig.to.deviceInfo.androidInfo.then((value) {
+            if (value.version.sdkInt >= 31) {
+              bluetooth = statuses[Permission.bluetoothScan] ?? PermissionStatus.denied;
+            }
+          });
+        }
+        switch ((camera, location, bluetooth, deviceManage)) {
+          case (PermissionStatus.restricted, PermissionStatus.granted, PermissionStatus.granted, true):
+            emit(state.copyWith(status: CommonStatus.initial));
+          case (PermissionStatus.granted, PermissionStatus.granted, PermissionStatus.granted, true):
           await Permission.camera.status.then((value) {
             if (value.isRestricted) {
               switch (profileStatus) {
@@ -157,17 +186,63 @@ class SplashBloc extends Bloc<CommonEvent, SplashState> {
             }
           }).catchError((e) {
 
-            /// 오류시
             emit(state.copyWith(status: CommonStatus.success, route: '/error/er500'));
+            // emit(state.copyWith(status: CommonStatus.error, errorMessage: e.toString()));
           });
+            break;
+          case (PermissionStatus.denied, _, _, _):
+            camera = await Permission.camera.request();
+            if (camera.isGranted && location.isGranted && bluetooth.isGranted) {
+              emit(state.copyWith(status: CommonStatus.success, route: '/permission'));
+            } else {
+              emit(state.copyWith(status: CommonStatus.initial));
+            }
+            break;
+          case (_, PermissionStatus.denied, _, _):
+            location = await Permission.locationWhenInUse.request();
+            if (camera.isGranted && location.isGranted && bluetooth.isGranted) {
+              emit(state.copyWith(status: CommonStatus.success, route: '/permission'));
+            } else {
+              emit(state.copyWith(status: CommonStatus.initial));
+            }
+            break;
+          case (_, _, PermissionStatus.denied, _):
+            bluetooth = await Permission.bluetooth.request();
+            if (camera.isGranted && location.isGranted && bluetooth.isGranted) {
+              emit(state.copyWith(status: CommonStatus.success, route: '/permission'));
+            } else {
+              emit(state.copyWith(status: CommonStatus.initial));
+            }
+            break;
+          case (_, _, _, false):
+            deviceManage = await AndroidMethodChannel.to.checkDeviceAdminStatus();
+            logger.d(deviceManage);
+            if (!deviceManage) {
+              await AndroidMethodChannel.to.enableDeviceAdmin().then((value) async {
+                deviceManage = await AndroidMethodChannel.to.checkDeviceAdminStatus();
+                if (deviceManage) {
+                  emit(state.copyWith(status: CommonStatus.success, route: '/permission'));
+                } else {
+                  emit(state.copyWith(status: CommonStatus.initial));
+                }
+              });
+            }else {
+              emit(state.copyWith(status: CommonStatus.success, route: '/permission'));
+            }
+            break;
+          case (_, _, _, _):
+            openAppSettings();
+            break;
         }
+        // }
+
       }
 
 
 
     } catch (e) {
-      logger.e(e);
       emit(state.copyWith(status: CommonStatus.success, route: '/error/er500'));
+      // emit(state.copyWith(status: CommonStatus.error, errorMessage: '${e.toString()}'));
     }
   }
 }

@@ -79,7 +79,10 @@ mixin CommonRepository {
         break;
     }
     if (body != null) request.body = jsonEncode(body);
+    logger.d(request.headers);
     http.StreamedResponse response = await request.send();
+    logger.d(response.statusCode);
+    logger.d(response.toString());
     return _checkStatus(response, await jsonDecode(await response.stream.bytesToString()), request.url);
   }
 

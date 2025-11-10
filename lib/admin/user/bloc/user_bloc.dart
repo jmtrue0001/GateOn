@@ -68,7 +68,7 @@ class UserBloc extends Bloc<CommonEvent, UserState> with StreamTransform {
       // 헤더 작성
       sheet.getRangeByName('A1').setText('유저디바이스 ID');
       sheet.getRangeByName('B1').setText('제조사');
-      sheet.getRangeByName('C1').setText('모델명');
+      sheet.getRangeByName('C1').setText('제품명');
       sheet.getRangeByName('D1').setText('앱버전');
       sheet.getRangeByName('E1').setText('OS 버전');
       sheet.getRangeByName('F1').setText('차단일시');

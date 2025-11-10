@@ -18,11 +18,14 @@ String dateDataParser({String? dateString, DateTime? date, String format = 'yyyy
   }
 }
 
-String timeParser(String? date, bool showCurrentYear) {
+String timeParser(String? date, bool showCurrentYear, {bool? second}) {
   if (date == null) return "-";
   final dateData = DateTime.parse(date).toLocal();
   if (dateData.year == DateTime.now().year && !showCurrentYear) {
     return DateFormat('MM-dd HH:mm').format(dateData);
+  }
+  if(second == true) {
+    return DateFormat('yyyy-MM-dd HH:mm:ss').format(dateData);
   }
   return DateFormat('yyyy-MM-dd HH:mm').format(dateData);
 }

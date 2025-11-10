@@ -19,13 +19,15 @@ class KnoxLicenseReceiver : BroadcastReceiver() {
     }
 
     override fun onReceive(context: Context, intent: Intent?) {
+        Log.d("KnoxLicenseReceiver", "onReceive called")
         if (intent == null) {
-            // No intent action is available
+            Log.d("KnoxLicenseReceiver", "Intent is null")
             showToast(context, context.getResources().getString(R.string.no_intent))
         } else {
             val action: String? = intent.getAction()
+            Log.d("KnoxLicenseReceiver", "Action received: $action")
             if (action == null) {
-                // No intent action is available
+                Log.d("KnoxLicenseReceiver", "Action is null")
                 showToast(context, context.getResources().getString(R.string.no_intent_action))
             } else if (action.equals(KnoxEnterpriseLicenseManager.ACTION_LICENSE_STATUS)) {
                 // ELM activation result Intent is obtained
@@ -34,15 +36,13 @@ class KnoxLicenseReceiver : BroadcastReceiver() {
                 )
                 if (errorCode == KnoxEnterpriseLicenseManager.ERROR_NONE) {
                     showToast(context, context.getResources().getString(R.string.kpe_activated_succesfully))
-//                    enterpriseDeviceManager = EnterpriseDeviceManager.getInstance(context)
-//                    val profilePolicy: ProfilePolicy = enterpriseDeviceManager!!.profilePolicy
-//                    val adminComponent = AppDeviceAdminReceiver.getComponentName(context)
-//                    profilePolicy.createWorkProfile();
-//                    profilePolicy.setProfileOwner(adminComponent, context.packageName)
-//                    enterpriseDeviceManager?.setAdminRemovable(false,"com.laonstory.mguard")
+                    // MainActivity에 성공 결과 전달
+//                    MainActivity.getInstance()?.onLicenseResult(true)
                 } else {
                     val errorMessage = getKPEErrorMessage(context, intent, errorCode)
                     showToast(context, errorMessage)
+                    // MainActivity에 실패 결과 전달
+//                    MainActivity.getInstance()?.onLicenseResult(false)
                 }
             } else if (action.equals(EnterpriseLicenseManager.ACTION_LICENSE_STATUS)) {
                 val errorCode: Int = intent.getIntExtra(
@@ -50,11 +50,13 @@ class KnoxLicenseReceiver : BroadcastReceiver() {
                 )
                 if (errorCode == EnterpriseLicenseManager.ERROR_NONE) {
                     showToast(context, context.getResources().getString(R.string.elm_action_successful))
-//                    enterpriseDeviceManager = EnterpriseDeviceManager.getInstance(context)
-//                    enterpriseDeviceManager?.setAdminRemovable(false,"com.laonstory.mguard")
+                    // MainActivity에 성공 결과 전달
+//                    MainActivity.getInstance()?.onLicenseResult(true)
                 } else {
                     val errorMessage = getELMErrorMessage(context, intent, errorCode)
                     showToast(context, errorMessage)
+                    // MainActivity에 실패 결과 전달
+//                    MainActivity.getInstance()?.onLicenseResult(false)
                 }
             }
         }

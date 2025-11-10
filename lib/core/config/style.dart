@@ -266,7 +266,7 @@ var lightTheme = ThemeData(
   scaffoldBackgroundColor: lightBackground,
   bottomSheetTheme: const BottomSheetThemeData(backgroundColor: white),
   appBarTheme: const AppBarTheme(backgroundColor: lightBackground, foregroundColor: black, systemOverlayStyle: SystemUiOverlayStyle.dark, iconTheme: IconThemeData(color: gray1)),
-  tabBarTheme: const TabBarTheme(
+  tabBarTheme: const TabBarThemeData(
     indicator: UnderlineTabIndicator(insets: EdgeInsets.only(left: 24.0, right: 24.0, top: 16), borderSide: BorderSide(width: 2, color: black)),
     labelColor: black,
     unselectedLabelColor: black,
@@ -332,7 +332,7 @@ var darkTheme = ThemeData(
     bodySmall: TextStyle(fontFamily: krFontFamily, fontSize: 12, fontWeight: FontWeight.w500, color: white),
   ).apply(bodyColor: white),
   appBarTheme: const AppBarTheme(iconTheme: IconThemeData(color: white), backgroundColor: darkBackground, foregroundColor: white, systemOverlayStyle: SystemUiOverlayStyle.light),
-  tabBarTheme: const TabBarTheme(
+  tabBarTheme: const TabBarThemeData(
     indicator: UnderlineTabIndicator(insets: EdgeInsets.only(left: 24.0, right: 24.0, top: 16), borderSide: BorderSide(width: 2, color: white)),
     labelColor: white,
     unselectedLabelColor: white,

@@ -241,7 +241,6 @@ class ChartDataWidget extends StatelessWidget {
             sideTitles: SideTitles(
               showTitles: true,
               reservedSize: 64,
-              interval: 10,
               getTitlesWidget: (data, meta) {
 
                 return data == meta.min

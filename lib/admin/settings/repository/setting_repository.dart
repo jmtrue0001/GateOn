@@ -5,7 +5,11 @@ class SettingApi with CommonRepository {
 
   Future<GeoLocation> getGeo(String address) async {
     try {
-      var result = await get(addressUrl, header: {'Authorization': 'KakaoAK 66f1b6a55900baadbc77f2499977fe0a'}, query: 'query=$address&analyze_type=similar&page=1&size=10');
+
+      var result = await get(addressUrl, query: 'query=$address&start=1&display=10');
+      // var result = await get(addressUrl, header: {'Authorization': 'KakaoAK 66f1b6a55900baadbc77f2499977fe0a'}, query: 'query=$address&analyze_type=similar&page=1&size=10');
+      logger.d(result.$1);
+      logger.d(result.$2);
 
       switch (result.$1) {
         case StatusCode.success:

@@ -95,7 +95,7 @@ class UserPage extends StatelessWidget {
                             CommonColumn('허용일시'),
                             CommonColumn('유저 디바이스ID'),
                             CommonColumn('제조사'),
-                            CommonColumn('모델명'),
+                            CommonColumn('제품명'),
                             CommonColumn('앱버전'),
                             CommonColumn('OS 버전'),
                             CommonColumn(
@@ -269,8 +269,8 @@ class UserPage extends StatelessWidget {
                 },
                 cells: [
                   CommonCell(' ${(meta?.currentPage ?? 1) * (meta?.sizePerPage ?? 20) - (meta?.sizePerPage ?? 20) + element.key + 1}'),
-                  CommonCell((timeParser(element.value.disabledAt, true))),
-                  CommonCell((timeParser(element.value.enabledAt, true))),
+                  CommonCell((timeParser(element.value.disabledAt, true, second: true))),
+                  CommonCell((timeParser(element.value.enabledAt, true, second: true))),
                   CommonCell(element.value.deviceId ?? '-'),
                   CommonCell(element.value.osType ?? '-'),
                   CommonCell(element.value.deviceModel ?? '-'),

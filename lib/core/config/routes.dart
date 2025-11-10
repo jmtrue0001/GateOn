@@ -10,7 +10,8 @@ final navigatorKey = GlobalKey<NavigatorState>();
 class AppRouter {
   final GoRouter setRouter = GoRouter(
     errorBuilder: (context, state) {
-      return const NotFoundPage();
+      return NotFoundPage(message:state.error?.message);
+      // return animatedDialog(context, state.error?.message ?? "없어용", () {});
     },
     initialLocation: '/splash',
     navigatorKey: navigatorKey,

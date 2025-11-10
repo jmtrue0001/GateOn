@@ -52,7 +52,7 @@ class HomePage extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text('제조사: ${AppConfig.to.manufacturer}'),
-            Text('모델명: ${AppConfig.to.model}'),
+            Text('제품명: ${AppConfig.to.model}'),
             Text('OS 버전: ${AppConfig.to.osVersion}'),
             Text('디바이스 ID: $deviceId'),
             Text('앱 버전: ${AppConfig.to.appVersion}'),
@@ -85,6 +85,11 @@ class HomePage extends StatelessWidget {
               }
               break;
             case CommonStatus.loading:
+              break;
+            case CommonStatus.dialog:
+              imageDialog(context, 'assets/images/nfc_guide.png', (){
+
+              });
               break;
             case CommonStatus.error:
               controller.clear();
@@ -343,8 +348,8 @@ class HomePage extends StatelessWidget {
                                           child: Column(
                                             mainAxisAlignment: MainAxisAlignment.center,
                                             children: [
-                                              Icon(Icons.no_photography_outlined,size: 40,),
-                                              Text('카메라', style: TextStyle(fontSize: 16),)
+                                              Icon(Icons.no_photography_outlined, size: 40, color: Colors.black),
+                                              Text('카메라', style: TextStyle(fontSize: 16, color: Colors.black))
                                             ],
                                           ),
                                         ),
@@ -359,8 +364,8 @@ class HomePage extends StatelessWidget {
                                           child: Column(
                                             mainAxisAlignment: MainAxisAlignment.center,
                                             children: [
-                                              Icon(Icons.mic_off, size: 40,),
-                                              Text('녹음')
+                                              Icon(Icons.mic_off, size: 40, color: Colors.black),
+                                              Text('녹음', style: TextStyle(color: Colors.black))
                                             ],
                                           ),
                                         ),
@@ -683,6 +688,8 @@ class HomePage extends StatelessWidget {
                                         const SizedBox(height: kBottomNavigationBarHeight + 16 + 64),
                                       ],
                                     ),
+                                  if(Platform.isAndroid && state.cameraPermissionStatus.isRestricted)
+                                    Container(height: 40,),
                                 ],
                               ),
                             ),
@@ -720,7 +727,7 @@ class HomePage extends StatelessWidget {
                                 });
                               case InteractionType.nfc:
                                 context.read<HomeBloc>().add(DisableDevice(interaction));
-                                if (Platform.isAndroid) {
+                                if (Platform.isAndroid && state.status != CommonStatus.dialog) {
                                   showNFCModal(context, () => context.read<HomeBloc>().add(const Cancel()));
                                 }
                                 break;
@@ -746,7 +753,7 @@ class HomePage extends StatelessWidget {
                               case InteractionType.qr:
                               case InteractionType.nfc:
                                 context.read<HomeBloc>().add(EnableDevice(interaction));
-                                if (Platform.isAndroid) {
+                                if (Platform.isAndroid && state.status != CommonStatus.dialog) {
                                   showNFCModal(context, () => context.read<HomeBloc>().add(const Cancel()));
                                 }
                                 break;

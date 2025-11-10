@@ -22,4 +22,5 @@ const subAdminUrl = '$serverUrl/enterprise/sub';
 const subAdminAddUrl = '$signupUrl/enterprise/sub';
 const subAdminPatchUrl = '$serverUrl/enterprise/auth/sub';
 
-const addressUrl = 'https://dapi.kakao.com/v2/local/search/address.json';
+// const addressUrl = 'https://dapi.kakao.com/v2/local/search/address.json';
+const addressUrl = '$serverUrl/address';

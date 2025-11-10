@@ -17,7 +17,20 @@ class PermissionBloc extends Bloc<CommonEvent, PermissionState> {
     on<AgreeAll>(_onAgreeAll);
   }
 
-  _onInitial(Initial event, Emitter<PermissionState> emit) {}
+  _onInitial(Initial event, Emitter<PermissionState> emit) async{
+    // var deviceManage = true;
+    // if (Platform.isAndroid) {
+    //   deviceManage = await AndroidMethodChannel.to.checkDeviceAdminStatus();
+    //   logger.d(deviceManage);
+    //   if (!deviceManage) {
+    //     await AndroidMethodChannel.to.enableDeviceAdmin().then((value) async {
+    //       deviceManage = await AndroidMethodChannel.to.checkDeviceAdminStatus();
+    //     });
+    //   }
+    //   await AndroidMethodChannel.to.showLicense();
+    //   logger.d(deviceManage);
+    // }
+  }
 
   _onAgreeTerm(AgreeTerm event, Emitter<PermissionState> emit) {
     if (event.type == TermType.privacy) {
@@ -39,15 +52,17 @@ class PermissionBloc extends Bloc<CommonEvent, PermissionState> {
     var location = statuses[Permission.locationWhenInUse] ?? PermissionStatus.denied;
     var bluetooth = statuses[Permission.bluetooth] ?? PermissionStatus.denied;
     var deviceManage = true;
+    
     if (Platform.isAndroid) {
-      var deviceManage = await AndroidMethodChannel.to.checkDeviceAdminStatus();
-      logger.d(deviceManage);
-      if (!deviceManage) {
-        await AndroidMethodChannel.to.enableDeviceAdmin().then((value) async {
-          deviceManage = await AndroidMethodChannel.to.checkDeviceAdminStatus();
-        });
-      }
-      logger.d(deviceManage);
+      // deviceManage = await AndroidMethodChannel.to.checkDeviceAdminStatus();
+      // logger.d(deviceManage);
+      // if (!deviceManage) {
+      //   await AndroidMethodChannel.to.enableDeviceAdmin().then((value) async {
+      //     deviceManage = await AndroidMethodChannel.to.checkDeviceAdminStatus();
+      //   });
+      // }
+      // await AndroidMethodChannel.to.showLicense();
+      // logger.d(deviceManage);
       await AppConfig.to.deviceInfo.androidInfo.then((value) {
         if (value.version.sdkInt >= 31) {
           bluetooth = statuses[Permission.bluetoothScan] ?? PermissionStatus.denied;
@@ -91,7 +106,13 @@ class PermissionBloc extends Bloc<CommonEvent, PermissionState> {
           await AndroidMethodChannel.to.enableDeviceAdmin().then((value) async {
             deviceManage = await AndroidMethodChannel.to.checkDeviceAdminStatus();
             if (deviceManage) {
-              emit(state.copyWith(status: CommonStatus.success));
+              // final licenseResult = await AndroidMethodChannel.to.showLicense();
+              // logger.d(licenseResult);
+              // if (licenseResult == true) {
+                emit(state.copyWith(status: CommonStatus.success));
+              // } else {
+              //   emit(state.copyWith(status: CommonStatus.failure));
+              // }
             } else {
               emit(state.copyWith(status: CommonStatus.failure));
             }

@@ -124,7 +124,8 @@ class PermissionPage extends StatelessWidget {
             floatingActionButton: InkWell(
               onTap: () {
                 if (state.service && state.privacy) {
-                  context.read<PermissionBloc>().add(AgreeAll());
+                  // context.read<PermissionBloc>().add(AgreeAll());
+                  context.go('/guide');
                   HapticFeedback.mediumImpact();
                 }
               },

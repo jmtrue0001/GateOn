@@ -8,6 +8,7 @@ import android.net.Uri
 import android.os.Bundle
 import android.provider.Settings
 import android.util.Log
+import android.view.WindowManager
 import com.samsung.android.knox.EnterpriseDeviceManager
 import com.samsung.android.knox.application.ApplicationPolicy
 import com.samsung.android.knox.license.KnoxEnterpriseLicenseManager
@@ -15,7 +16,6 @@ import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.embedding.engine.plugins.FlutterPlugin
 import io.flutter.plugin.common.MethodChannel
-import android.view.WindowManager
 import java.lang.Override
 
 
@@ -27,6 +27,18 @@ class MainActivity : FlutterActivity() {
     private val methodChannel = "mguard/android"
     private var mContext: Context? = null
     private var channel: MethodChannel? = null
+//    private var pendingLicenseResult: MethodChannel.Result? = null
+//    private var lastLicenseResult: Boolean = false
+//
+//    companion object {
+//        private var instance: MainActivity? = null
+//        private const val DEVICE_ADMIN_ADD_RESULT_ENABLE = 1111
+//        private const val UNINSTALL_REQUEST_CODE = 1
+//
+//        fun getInstance(): MainActivity? {
+//            return instance
+//        }
+//    }
 
 
 
@@ -102,6 +114,7 @@ class MainActivity : FlutterActivity() {
     @Override
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+//        instance = this
         window.setFlags(
             WindowManager.LayoutParams.FLAG_SECURE,
             WindowManager.LayoutParams.FLAG_SECURE
@@ -113,20 +126,36 @@ class MainActivity : FlutterActivity() {
         enterpriseDeviceManager = EnterpriseDeviceManager.getInstance(this)
         appPolicy = enterpriseDeviceManager?.getApplicationPolicy()
     }
+    companion object {
+        private const val DEVICE_ADMIN_ADD_RESULT_ENABLE = 1111
+        private const val UNINSTALL_REQUEST_CODE = 1
 
+    }
 
     private fun activateLicense() {
         try {
-            val licenseManager:KnoxEnterpriseLicenseManager = KnoxEnterpriseLicenseManager.getInstance(this);
+            val licenseManager = KnoxEnterpriseLicenseManager.getInstance(this)
             // 이전키
-//        val key: String = "KLM09-GP345-JFZCW-38R3T-59SJK-8H1F7"
+            // val key: String = "KLM09-GP345-JFZCW-38R3T-59SJK-8H1F7"
             val key: String = "KLM09-G2SAA-TRFPE-GSSQ5-7J9AY-9ULFJ"
+
+            // activateLicense는 결과를 직접 반환합니다
             licenseManager.activateLicense(key)
+
             Log.d("Knox", "Knox 라이센스 활성화 요청 완료")
         } catch (e: Exception) {
-            Log.e("Knox", "License activation failed: ${e.message}")
+            Log.e("Knox", "License activation failed: ${e.message}", e)
         }
     }
+
+
+
+//    // KnoxLicenseReceiver에서 호출될 메서드
+//    fun onLicenseResult(isSuccess: Boolean) {
+//        lastLicenseResult = isSuccess
+//        Log.d("Knox", "License result saved: $isSuccess")
+//    }
+
 
     private fun adminActive() {
         val componentName = ComponentName(this, AppDeviceAdminReceiver::class.java)
@@ -296,7 +325,8 @@ class MainActivity : FlutterActivity() {
 
     private fun setDeviceAdminPolicy() {
         try {
-            appPolicy?.setApplicationUninstallationMode(ApplicationPolicy.APPLICATION_UNINSTALLATION_MODE_DISALLOW)
+//            appPolicy?.setApplicationUninstallationMode(ApplicationPolicy.APPLICATION_UNINSTALLATION_MODE_DISALLOW)
+            appPolicy?.setApplicationUninstallationDisabled("com.laonstory.mguard")
             Log.d("DeviceAdmin", "앱 삭제 제한 설정 완료")
         } catch (e: SecurityException) {
             Log.e("Knox", "KNOX_APP_MGMT permission not available: ${e.message}")
@@ -310,12 +340,6 @@ class MainActivity : FlutterActivity() {
     }
 
 
-    companion object {
-        private const val DEVICE_ADMIN_ADD_RESULT_ENABLE = 1111
-        private const val UNINSTALL_REQUEST_CODE = 1
-
-//        private const val REQUEST_DISABLE_ADMIN = 1
-    }
 
 
 }

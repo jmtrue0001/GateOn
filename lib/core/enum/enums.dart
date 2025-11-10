@@ -1,6 +1,6 @@
 enum StatusCode { success, notFound, unAuthorized, badRequest, timeout, forbidden, error }
 
-enum CommonStatus { initial, success, loading, failure, error }
+enum CommonStatus { initial, success, loading, failure, error, dialog }
 
 enum UploadStatus { initial, success, loading, failure, delete }
 

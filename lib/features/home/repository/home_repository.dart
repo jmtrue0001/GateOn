@@ -10,9 +10,7 @@ class HomeRepository with CommonRepository {
 
   Future<CodeModel?> getProfileWithDevice(String tagId) async {
     try {
-      logger.d(AppConfig.to.model);
-      logger.d(AppConfig.to.osVersion);
-      logger.d(AppConfig.to.appVersion);
+      logger.d("보낼때 tagid $tagId");
       var result = await post(profileUrl, body: {'deviceId': await AppConfig.to.storage.read(key: "deviceId"), 'tagId': tagId, 'osType': Platform.isAndroid ? "SAMSUNG" : "APPLE", 'deviceModel' : AppConfig.to.model, 'osVersion' : AppConfig.to.osVersion, 'appVersion' : AppConfig.to.appVersion});
       switch (result.$1) {
         case StatusCode.success:

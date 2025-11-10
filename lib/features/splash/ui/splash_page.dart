@@ -16,11 +16,10 @@ class SplashPage extends StatelessWidget {
       create: (context) => SplashBloc()..add(const Initial()),
       child: BlocConsumer<SplashBloc, SplashState>(listener: (context, state) {
         if (state.status == CommonStatus.success) {
-          logger.d(state.route);
           Future.delayed(const Duration(milliseconds: 3000), () {
             context.go('${state.route}');
           });
-        }else if (state.status == CommonStatus.failure){
+        }else if (state.status == CommonStatus.failure) {
           showAdaptiveDialog(
               context: context,
               builder: (context) {
@@ -44,6 +43,32 @@ class SplashPage extends StatelessWidget {
                   ],
                 );
               });
+        }else if (state.status == CommonStatus.error) {
+          showAdaptiveDialog(
+              context: context,
+              builder: (context) {
+                return AlertDialog.adaptive(
+                  title: const Text(
+                    '알림',
+                  ),
+                  content: Text(
+                    '${state.errorMessage}',
+                  ),
+                );
+              });
+        }else if (state.status == CommonStatus.initial) {
+          showAdaptiveDialog(
+              context: context,
+              builder: (context) {
+                return AlertDialog.adaptive(
+                  title: const Text(
+                    '알림',
+                  ),
+                  content: Text(
+                    '초기',
+                  ),
+                );
+              });
         }
       }, builder: (context, state) {
         return Scaffold(
@@ -59,8 +84,9 @@ class SplashPage extends StatelessWidget {
               duration: const Duration(milliseconds: 500),
               child: switch (state.status) {
 
-                CommonStatus.success || CommonStatus.failure || CommonStatus.loading => const SvgImage("assets/images/logo_image.svg", height: 180, color: white),
-                CommonStatus.initial || CommonStatus.error => Container(),
+                CommonStatus.success|| CommonStatus.dialog || CommonStatus.failure || CommonStatus.loading => const SvgImage("assets/images/logo_image.svg", height: 180, color: white),
+                CommonStatus.initial || CommonStatus.error => Container(
+                ),
               },
             ),
           ),

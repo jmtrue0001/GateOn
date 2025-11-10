@@ -289,24 +289,24 @@ class SettingPage extends StatelessWidget {
                                                         radius: const Radius.circular(10),
                                                         child: state.fileBytes != null
                                                             ? Image.memory(
-                                                                state.fileBytes!,
-                                                                height: 80,
-                                                              )
+                                                          state.fileBytes!,
+                                                          height: 80,
+                                                        )
                                                             : CachedNetworkImage(
-                                                                imageUrl: '$resourceUrl${mainState.enterpriseInfo?.enterpriseFile?.fileName ?? ''}',
-                                                                fit: BoxFit.cover,
-                                                                placeholder: (context, url) {
-                                                                  return Container(
-                                                                    height: 80,
-                                                                  );
-                                                                },
-                                                                errorWidget: (context, url, error) {
-                                                                  return Container(
-                                                                    decoration: const BoxDecoration(
-                                                                      color: white,
-                                                                    ),
-                                                                  );
-                                                                }),
+                                                            imageUrl: '$resourceUrl${mainState.enterpriseInfo?.enterpriseFile?.fileName ?? ''}',
+                                                            fit: BoxFit.cover,
+                                                            placeholder: (context, url) {
+                                                              return Container(
+                                                                height: 80,
+                                                              );
+                                                            },
+                                                            errorWidget: (context, url, error) {
+                                                              return Container(
+                                                                decoration: const BoxDecoration(
+                                                                  color: white,
+                                                                ),
+                                                              );
+                                                            }),
                                                       ),
                                                     ),
                                                   ),
@@ -321,7 +321,7 @@ class SettingPage extends StatelessWidget {
                                                                 if (value != null) {
                                                                   final file = value.files.first;
                                                                   await file.readStream?.first.then(
-                                                                    (fileBytes) => context.read<SettingBloc>().add(PickFile(fileBytes as Uint8List, file.extension)),
+                                                                        (fileBytes) => context.read<SettingBloc>().add(PickFile(fileBytes as Uint8List, file.extension)),
                                                                   );
                                                                 }
                                                               });
@@ -593,24 +593,24 @@ class SettingPage extends StatelessWidget {
                                                     return InkWell(
                                                       onTap: () {
                                                         context.read<SettingBloc>().add(Submit({
-                                                              'code': codeController.text,
-                                                              'banDisabledCode': secretCodeController.text,
-                                                              'location': {
-                                                                'address': address.text,
-                                                                'latitude': context.read<SettingBloc>().state.latLng?.latitude,
-                                                                'longitude': context.read<SettingBloc>().state.latLng?.longitude,
-                                                                'radius': int.parse(meter.text),
-                                                              },
-                                                              "function": {
-                                                                'qrDisable': state.functionSwitch.$1,
-                                                                'beaconEnable': state.functionSwitch.$2,
-                                                                'beaconDisable': state.functionSwitch.$3,
-                                                                "locationEnable": state.functionSwitch.$4,
-                                                                'nfcDisable': state.functionSwitch.$5,
-                                                                'nfcEnable': state.functionSwitch.$6,
-                                                                'manualDisable': state.functionSwitch.$7,
-                                                                'manualEnable': state.functionSwitch.$8}
-                                                            }, context: context));
+                                                          'code': codeController.text,
+                                                          'banDisabledCode': secretCodeController.text,
+                                                          'location': {
+                                                            'address': address.text,
+                                                            'latitude': context.read<SettingBloc>().state.latLng?.latitude,
+                                                            'longitude': context.read<SettingBloc>().state.latLng?.longitude,
+                                                            'radius': int.parse(meter.text),
+                                                          },
+                                                          "function": {
+                                                            'qrDisable': state.functionSwitch.$1,
+                                                            'beaconEnable': state.functionSwitch.$2,
+                                                            'beaconDisable': state.functionSwitch.$3,
+                                                            "locationEnable": state.functionSwitch.$4,
+                                                            'nfcDisable': state.functionSwitch.$5,
+                                                            'nfcEnable': state.functionSwitch.$6,
+                                                            'manualDisable': state.functionSwitch.$7,
+                                                            'manualEnable': state.functionSwitch.$8}
+                                                        }, context: context));
                                                       },
                                                       child: Container(
                                                         height: 40,

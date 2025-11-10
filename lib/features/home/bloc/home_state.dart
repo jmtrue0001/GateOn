@@ -19,7 +19,8 @@ class HomeState extends CommonState {
     this.firstScan = true,
     this.ban,
     this.isUninstall = false,
-    this.qr
+    this.qr,
+    this.assetUrl
   });
 
   final String installedTime;
@@ -37,6 +38,7 @@ class HomeState extends CommonState {
   final bool firstScan;
   final bool isUninstall;
   final String? qr;
+  final String? assetUrl;
 
   @override
   List<Object?> get props => [
@@ -55,6 +57,7 @@ class HomeState extends CommonState {
         scanResult,
         firstScan,
         isUninstall,
-        qr
+        qr,
+        assetUrl
       ];
 }

@@ -126,4 +126,10 @@ class SettingBloc extends Bloc<CommonEvent, SettingState> {
     emit(state.copyWith(document: document, documents: []));
     emit(state.copyWith(latLng: LatLng(double.parse(state.document?.y ?? '37.47'), double.parse(state.document?.x ?? '126.88')), address: state.document?.roadAddress?.addressName));
   }
+
+  static LatLng convertNaverCoordinates(String mapx, String mapy) {
+    double longitude = double.parse(mapx) / 10000000.0;
+    double latitude = double.parse(mapy) / 10000000.0;
+    return LatLng(latitude, longitude);
+  }
 }

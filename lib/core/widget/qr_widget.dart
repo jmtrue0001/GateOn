@@ -29,6 +29,7 @@ class _QrWidgetState extends State<QrWidget> {
   void initState() {
     super.initState();
     qrViewController = MobileScannerController();
+
   }
 
   @override
@@ -44,6 +45,116 @@ class _QrWidgetState extends State<QrWidget> {
                     key: qrKey,
                     controller: qrViewController,
                     onDetect: _onQRViewCreated,
+                  ),
+                  Center(
+                    child: Container(
+                      width: 250,
+                      height: 250,
+                      child: Stack(
+                        children: [
+                          // 좌상단 모서리
+                          Positioned(
+                            top: 0,
+                            left: 0,
+                            child: Container(
+                              width: 50,
+                              height: 13,
+                              decoration: BoxDecoration(
+                                color: Colors.red,
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                            ),
+                          ),
+                          Positioned(
+                            top: 0,
+                            left: 0,
+                            child: Container(
+                              width: 13,
+                              height: 50,
+                              decoration: BoxDecoration(
+                                color: Colors.red,
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                            ),
+                          ),
+                          // 우상단 모서리
+                          Positioned(
+                            top: 0,
+                            right: 0,
+                            child: Container(
+                              width: 50,
+                              height: 13,
+                              decoration: BoxDecoration(
+                                color: Colors.red,
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                            ),
+                          ),
+                          Positioned(
+                            top: 0,
+                            right: 0,
+                            child: Container(
+                              width: 13,
+                              height: 50,
+                              decoration: BoxDecoration(
+                                color: Colors.red,
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                            ),
+                          ),
+                          // 좌하단 모서리
+                          Positioned(
+                            bottom: 0,
+                            left: 0,
+                            child: Container(
+                              width: 50,
+                              height: 13,
+                              decoration: BoxDecoration(
+                                color: Colors.red,
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                            ),
+                          ),
+                          Positioned(
+                            bottom: 0,
+                            left: 0,
+                            child: Container(
+                              width: 13,
+                              height: 50,
+                              decoration: BoxDecoration(
+                                color: Colors.red,
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                            ),
+                          ),
+                          // 우하단 모서리
+                          Positioned(
+                            bottom: 0,
+                            right: 0,
+                            child: Container(
+                              width: 50,
+                              height: 13,
+                              decoration: BoxDecoration(
+                                color: Colors.red,
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                            ),
+                          ),
+                          Positioned(
+                            bottom: 0,
+                            right: 0,
+                            child: Container(
+                              width: 13,
+                              height: 50,
+                              decoration: BoxDecoration(
+                                color: Colors.red,
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
                   Positioned(
                       top: 16,

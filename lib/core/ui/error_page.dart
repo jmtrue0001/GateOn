@@ -5,14 +5,14 @@ import '../../main.dart';
 import '../core.dart';
 
 class NotFoundPage extends StatelessWidget {
-  const NotFoundPage({Key? key}) : super(key: key);
-
+  const NotFoundPage({Key? key, this.message}) : super(key: key);
+  final String? message;
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: Center(
           child: Text(
-        "페이지가 없습니다.\n\n불편을 드려 죄송합니다.",
+        message ?? "페이지가 없습니다.\n\n불편을 드려 죄송합니다.",
         style: textTheme(context).krSubtitle1R,
         textAlign: TextAlign.center,
       )),

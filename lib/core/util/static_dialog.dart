@@ -78,6 +78,150 @@ showNFCModal(context, Function() onCancel) {
   }
 }
 
+imageDialog(context, String assetUrl, Function() onClick) {
+  showDialog(
+    context: context,
+    barrierDismissible: true,
+    barrierColor: Colors.black54,
+    builder: (BuildContext context) {
+      return Dialog(
+        backgroundColor: Colors.transparent,
+        child: Container(
+          constraints: BoxConstraints(
+            maxWidth: MediaQuery.of(context).size.width * 0.9,
+            maxHeight: MediaQuery.of(context).size.height * 0.8,
+          ),
+          decoration: BoxDecoration(
+            color: Theme.of(context).scaffoldBackgroundColor,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // 이미지 영역 (확대 가능)
+              Flexible(
+                child: GestureDetector(
+                  onTap: () {
+                    // 이미지 전체화면으로 확대
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.all(16),
+                    child: Hero(
+                      tag: assetUrl, // Hero 애니메이션을 위한 태그
+                      child: Image(
+                        image: AssetImage(assetUrl),
+                        errorBuilder: (context, error, stackTrace) {
+                          return Container(
+                            width: 200,
+                            height: 200,
+                            decoration: BoxDecoration(
+                              color: Colors.grey[300],
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: const Icon(
+                              Icons.broken_image,
+                              size: 50,
+                              color: Colors.grey,
+                            ),
+                          );
+                        },
+                        fit: BoxFit.contain,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              // 확인 버튼
+              Container(
+                decoration: const BoxDecoration(
+                  color: black,
+                  borderRadius: BorderRadius.only(
+                    bottomLeft: Radius.circular(12),
+                    bottomRight: Radius.circular(12),
+                  ),
+                ),
+                width: double.infinity,
+                child: TextButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                    onClick();
+                  },
+                  child: Text(
+                    '확인',
+                    style: textTheme(context).krBody1.copyWith(color: white),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    },
+  );
+}
+
+// 전체화면 이미지 보기 함수
+_showFullScreenImage(BuildContext context, String assetUrl) {
+  showDialog(
+    context: context,
+    barrierDismissible: true,
+    barrierColor: Colors.transparent,
+    builder: (BuildContext context) {
+      return Dialog.fullscreen(
+        backgroundColor: Colors.transparent,
+        child: Stack(
+          children: [
+            // 전체화면 이미지
+            Center(
+              child: Hero(
+                tag: assetUrl,
+                child: InteractiveViewer(
+                  alignment: Alignment.center, // 초기 이미지를 센터에 배치
+                  // boundaryMargin: const EdgeInsets.all(40), // 경계 설정
+                  constrained: false, // 제약 해제로 확대 시 화면 밖 보이게
+                  child: Image(
+                    width: MediaQuery.of(context).size.width-20,
+                    height: 300,
+                    image: AssetImage(assetUrl),
+                    errorBuilder: (context, error, stackTrace) {
+                      return Container(
+                        width: MediaQuery.of(context).size.width-20,
+                        height: 300,
+                        decoration: BoxDecoration(
+                          color: Colors.grey[800],
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Icon(
+                          Icons.broken_image,
+                          size: 50,
+                          color: Colors.grey,
+                        ),
+                      );
+                    },
+                  )
+                ),
+              ),
+            ),
+            // 닫기 버튼
+            Positioned(
+              top: 40,
+              right: 20,
+              child: IconButton(
+                onPressed: () => Navigator.pop(context),
+                icon: const Icon(
+                  Icons.close,
+                  color: Colors.black,
+                  size: 30,
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    },
+  );
+}
+
 animatedDialog(context, String message, Function() onClick) {
   IconDialog.show(
       canGoBack: false,

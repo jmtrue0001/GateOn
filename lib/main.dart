@@ -41,7 +41,6 @@ Future<void> main() async {
           if (value == null) {
             String id = await AndroidMethodChannel.to.getId();
             await AppConfig.to.storage.write(key: "deviceId", value: id);
-            logger.d('deviceId ${id}');
           }
         });
 
@@ -102,7 +101,8 @@ class App extends StatelessWidget {
                     const ResponsiveBreakpoint.resize(800, name: TABLET),
                     const ResponsiveBreakpoint.resize(1000, name: DESKTOP),
                   ],
-                  background: Container(color: const Color(0xFFF5F5F5)));
+                  // background: Container(color: const Color(0xFFF5F5F5)));
+                  background: Container(color: const Color.fromARGB(252, 7, 0, 0)));
             }),
       ),
     );
@@ -154,7 +154,11 @@ class AppConfig {
   static AppConfig get to => AppConfig();
 
   static const FlutterSecureStorage _storage = FlutterSecureStorage(
+      iOptions: IOSOptions(
+        accessibility: KeychainAccessibility.first_unlock,
+      ),
       aOptions: AndroidOptions(
+        resetOnError: true,
     encryptedSharedPreferences: true,
   ));
   static final DeviceInfoPlugin _deviceInfoPlugin = DeviceInfoPlugin();
@@ -184,6 +188,7 @@ class AppConfig {
   String? get appVersion => _appVersion;
 
   static Future init({required VoidCallback callback}) async {
+    // await dotenv
     WidgetsFlutterBinding.ensureInitialized();
     setPathUrlStrategy();
     SystemChrome.setPreferredOrientations([
@@ -221,6 +226,7 @@ class AppConfig {
       }
       final appInfo = await PackageInfo.fromPlatform();
       _appVersion = appInfo.version;
+
     }
     if ((await _storage.read(key: 'time_installed')) == null) {
       _storage.write(key: 'time_installed', value: '${DateTime.now().millisecondsSinceEpoch}');

@@ -10,10 +10,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'package:nfc_manager/nfc_manager.dart';
-import 'package:nfc_manager/platform_tags.dart';
+import 'package:nfc_manager/nfc_manager_android.dart';
+import 'package:nfc_manager/nfc_manager_ios.dart';
+import 'package:nfc_manager_ndef/nfc_manager_ndef.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
-
+import 'package:app_links/app_links.dart';
 import '../../../main.dart';
 import '../repository/home_repository.dart';
 
@@ -46,6 +48,7 @@ class HomeBloc extends Bloc<CommonEvent, HomeState> with StreamTransform {
   }
 
   final Ticker _ticker;
+
   static const int _duration = 0;
 
   StreamSubscription<int>? _tickerSubscription;
@@ -72,33 +75,35 @@ class HomeBloc extends Bloc<CommonEvent, HomeState> with StreamTransform {
     final code = await AppConfig.to.storage.read(key: 'code');
     final platform =  MethodChannel('mguard/android');
     // TODO: Implement deep linking when app_links is properly configured
-    // final initialLink = await getInitialLink();
-    // if(initialLink!= null){
-    //   final uri = Uri.parse(initialLink);
-    //   logger.d('설치');
-    //   logger.d(uri);
-    //   logger.d(uri.host);
-    //   logger.d(uri.path);
-    //   if(uri.host == 'flutter' && uri.path == '/specificFunction'){
-    //     logger.d('차단실행');
-    //     add(ScanQR(tagId:uri.queryParameters['id']));
-    //   }else{
-    //     logger.d('호스트 또는 경로가 일치하지 않습니다.');
-    //   }
-    // }else{
-    //   _QrSubscription = linkStream.listen((String? link) {
-    //     if(link != null){
-    //       final uri = Uri.parse(link);
-    //       if (uri.host == 'flutter' && uri.path == '/specificFunction') {
-    //         add(ScanQR(tagId:uri.queryParameters['id']));
-    //       }else{
-    //         add(Error(errorMessage: '등록된 QR이 없거나 qr코드가 일치하지 않습니다.'));
-    //       }
-    //     }
-    //   },onError: (e){
-    //     add(Error(errorMessage: e.toString()));
-    //   });
-    // }
+    final appLinks = AppLinks();
+    final initialLink = await appLinks.getInitialAppLink();
+    if(initialLink!= null){
+      final uri = initialLink;
+      logger.d('설치');
+      logger.d(uri);
+      logger.d(uri.host);
+      logger.d(uri.path);
+      if(uri.host == 'flutter' && uri.path == '/specificFunction'){
+        logger.d('차단실행');
+        add(ScanQR(tagId:uri.queryParameters['id']));
+      }else{
+        logger.d('호스트 또는 경로가 일치하지 않습니다.');
+      }
+    }else{
+      _QrSubscription = appLinks.allUriLinkStream.listen((link) {
+        if(link != null){
+          final uri = link;
+          if (uri.host == 'flutter' && uri.path == '/specificFunction') {
+
+            add(ScanQR(tagId:uri.queryParameters['id']));
+          }else{
+            add(Error(errorMessage: '등록된 QR이 없거나 qr코드가 일치하지 않습니다.'));
+          }
+        }
+      },onError: (e){
+        add(Error(errorMessage: e.toString()));
+      });
+    }
 
 
     /// code가 있으면 기업 정보를 가져온다.
@@ -203,21 +208,28 @@ class HomeBloc extends Bloc<CommonEvent, HomeState> with StreamTransform {
       //   add(ScanQR(enabled: false));
       /// nfc
       case InteractionType.nfc:
-        final nfc = NfcManager.instance;
-        nfc.startSession(onDiscovered: (NfcTag tag) async {
-          if (Platform.isAndroid) {
-            Navigator.of(navigatorKey.currentContext!).pop();
-          }
-          add(TagNFC(tag: tag, enabled: false));
-          nfc.stopSession();
-        }, onError: (error) async {
-          if (Platform.isAndroid) {
-            Navigator.of(navigatorKey.currentContext!).pop();
-          }
-          add(const Cancel());
-          nfc.stopSession();
-        });
-        return;
+        NfcAvailability availability = await NfcManager.instance.checkAvailability();
+        logger.d(availability);
+        if (availability != NfcAvailability.enabled) {
+          emit(state.copyWith(status: CommonStatus.dialog, ));
+          return;
+        }else{
+          final nfc = NfcManager.instance;
+          nfc.startSession(onDiscovered: (NfcTag tag) async {
+            if (Platform.isAndroid) {
+              Navigator.of(navigatorKey.currentContext!).pop();
+            }
+            add(TagNFC(tag: tag, enabled: false));
+            nfc.stopSession();
+          }, onSessionErrorIos: (error) async {
+            if (Platform.isAndroid) {
+              Navigator.of(navigatorKey.currentContext!).pop();
+            }
+            add(const Cancel());
+            nfc.stopSession();
+          }, pollingOptions: {NfcPollingOption.iso14443,NfcPollingOption.iso15693,NfcPollingOption.iso18092});
+          return;
+        }
 
       /// manual
       case InteractionType.manual:
@@ -239,19 +251,21 @@ class HomeBloc extends Bloc<CommonEvent, HomeState> with StreamTransform {
       /// nfc
       case InteractionType.nfc:
         final nfc = NfcManager.instance;
-        nfc.startSession(onDiscovered: (NfcTag tag) async {
+        nfc.startSession(
+            onDiscovered: (NfcTag tag) async {
           if (Platform.isAndroid) {
             Navigator.of(navigatorKey.currentContext!).pop();
           }
           add(TagNFC(tag: tag, enabled: true));
           nfc.stopSession();
-        }, onError: (error) async {
+        }, onSessionErrorIos: (error) async {
           if (Platform.isAndroid) {
             Navigator.of(navigatorKey.currentContext!).pop();
           }
           add(const Cancel());
           nfc.stopSession();
-        });
+        },
+            pollingOptions: {NfcPollingOption.iso14443,NfcPollingOption.iso15693,NfcPollingOption.iso18092});
         return;
     /// beacon
       case InteractionType.beacon:
@@ -334,13 +348,13 @@ class HomeBloc extends Bloc<CommonEvent, HomeState> with StreamTransform {
     if (Platform.isAndroid) {
       /// 안드로이드 NDEF 규격 NFC 사용
       Ndef? ndef = Ndef.from(event.tag);
-      nfcIdCode = hex.encode(ndef?.additionalData['identifier'] ?? []).toUpperCase();
+      NdefAndroid? ndefAndroid = NdefAndroid.from(event.tag);
+      nfcIdCode = hex.encode(ndefAndroid!.tag.id.toList()) ;
     } else {
       /// iOS MiFare 규격 NFC 사용
-      MiFare? miFare = MiFare.from(event.tag);
+      MiFareIos? miFare = MiFareIos.from(event.tag);
       nfcIdCode = hex.encode(miFare?.identifier ?? []).toUpperCase();
     }
-    logger.d(nfcIdCode);
     await HomeRepository.to.getProfileWithDevice(nfcIdCode).then((data) async {
       logger.d(data?.toJson());
       /// data에 tagType이 DISABLE: 차단, ENABLE: 허용 태그 ( 안드로이드일때만 tagType이 있음, 안드로이드일때만 체크하면 됨 )
@@ -462,7 +476,7 @@ class HomeBloc extends Bloc<CommonEvent, HomeState> with StreamTransform {
   _onTicked(_TimerTicked event, Emitter<HomeState> emit) async {
     /// 차단 시점
     final blockTime = await AppConfig.to.storage.read(key: 'time_blocked') ?? '';
-      logger.d("${state.isUninstall} 활성화여부");
+      // logger.d("${state.isUninstall} 활성화여부");
     /// 카메라 권한 상태 체크
     await Permission.camera.status.then((cameraPermissionStatus) async {
       /// 안드로이드 디바이스 어드민 상태체크 + 카메라 체크

@@ -56,19 +56,6 @@ class SplashPage extends StatelessWidget {
                   ),
                 );
               });
-        }else if (state.status == CommonStatus.initial) {
-          showAdaptiveDialog(
-              context: context,
-              builder: (context) {
-                return AlertDialog.adaptive(
-                  title: const Text(
-                    '알림',
-                  ),
-                  content: Text(
-                    '초기',
-                  ),
-                );
-              });
         }
       }, builder: (context, state) {
         return Scaffold(

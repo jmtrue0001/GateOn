@@ -137,7 +137,7 @@ class SplashBloc extends Bloc<CommonEvent, SplashState> {
         }
         switch ((camera, location, bluetooth, deviceManage)) {
           case (PermissionStatus.restricted, PermissionStatus.granted, PermissionStatus.granted, true):
-            emit(state.copyWith(status: CommonStatus.initial));
+            emit(state.copyWith(status: CommonStatus.success, route: '/'));
           case (PermissionStatus.granted, PermissionStatus.granted, PermissionStatus.granted, true):
           await Permission.camera.status.then((value) {
             if (value.isRestricted) {

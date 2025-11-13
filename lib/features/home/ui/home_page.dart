@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:TPASS/core/widget/qr_widget.dart';
+import 'package:TPASS/features/home/repository/home_repository.dart';
 import 'package:TPASS/main.dart';
 import 'package:auto_size_text/auto_size_text.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -110,6 +111,8 @@ class HomePage extends StatelessWidget {
               if (state.profileUrl.isNotEmpty && Platform.isIOS) {
                 logger.d(state.profileUrl);
                 await _launchUrl(state.profileUrl);
+                // await HomeRepository.to.downloadFile(state.profileUrl);
+                // await _launchUrl('$serverUrl/url/files/${state.profileUrl}');
               }
               break;
           }
@@ -810,7 +813,7 @@ class HomePage extends StatelessWidget {
   }
 
   Future<void> _launchUrl(String url) async {
-    if (!await launchUrl(Uri.parse(url))) {
+    if (!await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication)) {
       throw Exception('Could not launch $url');
     }
   }

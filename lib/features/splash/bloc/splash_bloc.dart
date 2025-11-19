@@ -94,17 +94,18 @@ class SplashBloc extends Bloc<CommonEvent, SplashState> {
       if (storeVersion != null && storeVersion.toString().isNotEmpty && storeVersion.toString().compareTo("") != 0 && Version.parse(storeVersion) > Version.parse(packageInfo.version) ) {
         emit(state.copyWith(status: CommonStatus.failure,errorMessage: getStoreUrlValue(packageInfo.packageName, packageInfo.appName) ));
       }else{
-        // final guide = await AppConfig.to.storage.read(key: 'guide_status') == 'true';
+        // await AppConfig.to.storage.delete(key: 'guide_status');
+        final guide = await AppConfig.to.storage.read(key: 'guide_status') == 'true';
         final profileStatus = await AppConfig.to.storage.read(key: 'profile_status');
+        // logger.d(await AppConfig.to.storage.read(key: 'guide_status'));
+        // logger.d(guide);
+        // logger.d("프로필상태${profileStatus}");
         if (profileStatus == 'ban') {
           emit(state.copyWith(status: CommonStatus.success, route: '/ban'));
           return;
         }
-        // if (!guide) {
-        //   emit(state.copyWith(status: CommonStatus.success, route: '/permission'));
-        // } else {
-        //
-        //
+
+
 
         var deviceManage = true;
         if (Platform.isAndroid) {
@@ -135,6 +136,9 @@ class SplashBloc extends Bloc<CommonEvent, SplashState> {
             }
           });
         }
+        if (!guide) {
+          emit(state.copyWith(status: CommonStatus.success, route: '/permission'));
+        } else {
         switch ((camera, location, bluetooth, deviceManage)) {
           case (PermissionStatus.restricted, PermissionStatus.granted, PermissionStatus.granted, true):
             emit(state.copyWith(status: CommonStatus.success, route: '/'));
@@ -145,17 +149,17 @@ class SplashBloc extends Bloc<CommonEvent, SplashState> {
                 case 'disable':
                 case 'wait':
 
-                /// 차단 프로파일 설치 및 카메라 차단
+                /// 차단 프로필 설치 및 카메라 차단
                   emit(state.copyWith(status: CommonStatus.success, route: '/'));
                   break;
                 case 'enable':
 
-                /// 허용 프로파일 미 설치 및 카메라 차단
+                /// 허용 프로필 미 설치 및 카메라 차단
                   emit(state.copyWith(status: CommonStatus.success, route: '/'));
                   break;
                 default:
 
-                /// 권한이 차단되어있으나 프로파일에 에러가 발생
+                /// 권한이 차단되어있으나 프로필에 에러가 발생
                   emit(state.copyWith(status: CommonStatus.success, route: '/error/er200'));
                   break;
               }
@@ -163,20 +167,20 @@ class SplashBloc extends Bloc<CommonEvent, SplashState> {
               switch (profileStatus) {
                 case 'disable':
 
-                /// 허용 프로파일 미 설치 및 카메라 허용
+                /// 허용 프로필 미 설치 및 카메라 허용
                   emit(state.copyWith(status: CommonStatus.success, route: '/'));
                   break;
                 case 'enable':
                 case 'wait':
                 case null:
 
-                /// 허용 프로파일 설치 및 카메라 허용
-                /// 프로파일 미설치 시
+                /// 허용 프로필 설치 및 카메라 허용
+                /// 프로필 미설치 시
                   emit(state.copyWith(status: CommonStatus.success, route: '/'));
                   break;
                 default:
 
-                /// 권한이 허용되어있으나 프로파일에 에러가 발생
+                /// 권한이 허용되어있으나 프로필에 에러가 발생
                   emit(state.copyWith(status: CommonStatus.success, route: '/error/er300'));
                   break;
               }
@@ -234,7 +238,7 @@ class SplashBloc extends Bloc<CommonEvent, SplashState> {
             openAppSettings();
             break;
         }
-        // }
+        }
 
       }
 

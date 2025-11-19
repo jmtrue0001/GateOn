@@ -388,7 +388,7 @@ class SettingPage extends StatelessWidget {
                                             },
                                           ),
                                           const SizedBox(height: 24),
-                                          Text('제한해제 코드', style: textTheme(context).krBody1),
+                                          Text('관리자/제한해제 코드', style: textTheme(context).krBody1),
                                           const SizedBox(height: 8),
                                           BlocSelector<MainBloc, MainState, String?>(
                                             selector: (state) => state.enterpriseInfo?.banDisabledCode,
@@ -563,7 +563,7 @@ class SettingPage extends StatelessWidget {
                                                       ),
                                                       Row(
                                                         children: [
-                                                          Text('업체코드', style: textTheme(context).krSubtitle1),
+                                                          Text('관리자/제한해제 코드', style: textTheme(context).krSubtitle1),
                                                           const SizedBox(width: 16),
                                                           CupertinoSwitch(
                                                               value: state.$8,

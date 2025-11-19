@@ -67,15 +67,15 @@ sealed class ErrorCode {
 }
 
 class Er100 extends ErrorCode {
-  Er100() : super(code: 'err100', message: 'STATE_NOT_MATCHED', description: '프로파일 상태와 권한 상태가 일치하지 않음');
+  Er100() : super(code: 'err100', message: 'STATE_NOT_MATCHED', description: '프로필 상태와 권한 상태가 일치하지 않음');
 }
 
 class Er200 extends ErrorCode {
-  Er200() : super(code: 'err200', message: 'PROFILE_NOT_FOUND', description: '권한은 제한되어있지만 프로파일을 찾을 수 없음');
+  Er200() : super(code: 'err200', message: 'PROFILE_NOT_FOUND', description: '권한은 제한되어있지만 프로필을 찾을 수 없음');
 }
 
 class Er300 extends ErrorCode {
-  Er300() : super(code: 'err300', message: 'PROFILE_NOT_FOUND', description: '권한은 허용되어있지만 프로파일을 찾을 수 없음');
+  Er300() : super(code: 'err300', message: 'PROFILE_NOT_FOUND', description: '권한은 허용되어있지만 프로필을 찾을 수 없음');
 }
 
 class Er400 extends ErrorCode {

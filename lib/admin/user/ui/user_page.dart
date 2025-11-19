@@ -274,8 +274,8 @@ class UserPage extends StatelessWidget {
                   CommonCell(element.value.deviceId ?? '-'),
                   CommonCell(element.value.osType ?? '-'),
                   CommonCell(element.value.deviceModel ?? '-'),
-                  CommonCell(element.value.osVersion ?? '-'),
                   CommonCell(element.value.appVersion ?? '-'),
+                  CommonCell(element.value.osVersion ?? '-'),
                   CommonCell(element.value.isActive),
                 ]))
         .toList();

@@ -436,7 +436,7 @@ class HomePage extends StatelessWidget {
                                             text: '3단계 : ',
                                             children: [
                                               TextSpan(
-                                                text: '[TPASS 프로파일(차단)]',
+                                                text: '[TPASS 프로필(차단)]',
                                                 style: textTheme(context).krBody2.copyWith(color: const Color(0xff7B878D)),
                                               ),
                                               const TextSpan(text: '다운로드 및 설치')
@@ -511,7 +511,7 @@ class HomePage extends StatelessWidget {
                                             text: '3단계 : ',
                                             children: [
                                               TextSpan(
-                                                text: '[TPASS 프로파일(차단)]',
+                                                text: '[TPASS 프로필(차단)]',
                                                 style: textTheme(context).krBody2.copyWith(color: const Color(0xff7B878D)),
                                               ),
                                               const TextSpan(text: '다운로드 및 설치')
@@ -587,7 +587,7 @@ class HomePage extends StatelessWidget {
                                             text: '3단계 : ',
                                             children: [
                                               TextSpan(
-                                                text: '[TPASS 프로파일(차단)]',
+                                                text: '[TPASS 프로필(차단)]',
                                                 style: textTheme(context).krBody2.copyWith(color: const Color(0xff7B878D)),
                                               ),
                                               const TextSpan(text: '다운로드 및 설치')
@@ -663,7 +663,7 @@ class HomePage extends StatelessWidget {
                                             text: '3단계 : ',
                                             children: [
                                               TextSpan(
-                                                text: '[TPASS 프로파일(차단)]',
+                                                text: '[TPASS 프로필(차단)]',
                                                 style: textTheme(context).krBody2.copyWith(color: const Color(0xff7B878D)),
                                               ),
                                               const TextSpan(text: '다운로드 및 설치')

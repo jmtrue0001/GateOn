@@ -57,7 +57,7 @@ class _LocationPageState extends State<LocationPage> {
                     ),
                     const SizedBox(height: 16),
                     Text(
-                      '지정된 위치를 벗어나면 차단 해제 프로파일을 설치할 수 있습니다.',
+                      '지정된 위치를 벗어나면 차단 해제 프로필을 설치할 수 있습니다.',
                       style: textTheme(context).krSubtext1,
                     ),
                   ],

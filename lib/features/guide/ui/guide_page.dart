@@ -49,7 +49,7 @@ class GuidePage extends StatelessWidget {
                     Text('TPASS는 스마트폰의 기능(카메라, 녹음) 사용을 제어 합니다.', style: textTheme(context).krSubtitle1.copyWith(color: colorTheme(context).titleText)),
                     const SizedBox(height: 16),
                     Platform.isIOS ?
-                    Text('카메라 제어를 위해 프로파일의 설치가 필요합니다.', style: textTheme(context).krBody1)
+                    Text('카메라 제어를 위해 프로필의 설치가 필요합니다.', style: textTheme(context).krBody1)
                     : Container()
                     ,
                   ],
@@ -78,7 +78,7 @@ class GuidePage extends StatelessWidget {
                               const SizedBox(width: 16),
                               Platform.isAndroid ?
                               Text('기능 차단 방법', style: textTheme(context).krSubtitle1.copyWith(color: colorTheme(context).foregroundText)) :
-                              Text('TPASS 프로파일(차단) 설치 방법', style: textTheme(context).krSubtitle1.copyWith(color: colorTheme(context).foregroundText))
+                              Text('TPASS 프로필(차단) 설치 방법', style: textTheme(context).krSubtitle1.copyWith(color: colorTheme(context).foregroundText))
                               ,
                             ],
                           ),
@@ -96,7 +96,7 @@ class GuidePage extends StatelessWidget {
                           ):GuideText(
                             1,
                             textSpan: [
-                              TextSpan(text: '[TPASS 프로파일(차단)] 다운로드', style: textTheme(context).krSubtext1.copyWith(color: colorTheme(context).foregroundText)),
+                              TextSpan(text: '[TPASS 프로필(차단)] 다운로드', style: textTheme(context).krSubtext1.copyWith(color: colorTheme(context).foregroundText)),
                             ],
                           ),
                           const SizedBox(height: 8),
@@ -134,7 +134,7 @@ class GuidePage extends StatelessWidget {
                           ):GuideText(
                             3,
                             textSpan: [
-                              TextSpan(text: '[프로파일 다운로드됨] 선택', style: textTheme(context).krSubtext1.copyWith(color: colorTheme(context).foregroundText)),
+                              TextSpan(text: '[프로필 다운로드됨] 선택', style: textTheme(context).krSubtext1.copyWith(color: colorTheme(context).foregroundText)),
                             ],
                           ),
                           Platform.isAndroid?
@@ -145,7 +145,7 @@ class GuidePage extends StatelessWidget {
                           GuideText(
                             4,
                             textSpan: [
-                              TextSpan(text: '[TPASS 프로파일 (차단)] 설치', style: textTheme(context).krSubtext1.copyWith(color: colorTheme(context).foregroundText)),
+                              TextSpan(text: '[TPASS 프로필 (차단)] 설치', style: textTheme(context).krSubtext1.copyWith(color: colorTheme(context).foregroundText)),
                             ],
                           ),
                           Platform.isAndroid?
@@ -179,7 +179,7 @@ class GuidePage extends StatelessWidget {
                               const SizedBox(width: 16),
                               Platform.isAndroid?
                               Text('기능 허용(차단 해제) 방법', style: textTheme(context).krSubtitle1.copyWith(color: colorTheme(context).foregroundText)):
-                              Text('TPASS 프로파일(차단 해제) 설치 방법', style: textTheme(context).krSubtitle1.copyWith(color: colorTheme(context).foregroundText))
+                              Text('TPASS 프로필(차단 해제) 설치 방법', style: textTheme(context).krSubtitle1.copyWith(color: colorTheme(context).foregroundText))
                               ,
                             ],
                           ),
@@ -199,7 +199,7 @@ class GuidePage extends StatelessWidget {
                             1,
                             textSpan: [
                               TextSpan(
-                                text: '[TPASS 프로파일(차단해제)] ',
+                                text: '[TPASS 프로필(차단해제)] ',
                                 style: textTheme(context).krSubtext1.copyWith(fontWeight: FontWeight.bold, color: colorTheme(context).foregroundText),
                               ),
                               TextSpan(text: '다운로드', style: textTheme(context).krSubtext1.copyWith(color: colorTheme(context).foregroundText)),
@@ -240,7 +240,7 @@ class GuidePage extends StatelessWidget {
                           ):GuideText(
                             3,
                             textSpan: [
-                              TextSpan(text: '[프로파일 다운로드됨] 선택', style: textTheme(context).krSubtext1.copyWith(color: colorTheme(context).foregroundText)),
+                              TextSpan(text: '[프로필 다운로드됨] 선택', style: textTheme(context).krSubtext1.copyWith(color: colorTheme(context).foregroundText)),
                             ],
                           ),
                           Platform.isAndroid?
@@ -251,7 +251,7 @@ class GuidePage extends StatelessWidget {
                           GuideText(
                             4,
                             textSpan: [
-                              TextSpan(text: '[TPASS 프로파일 (차단해제)] 설치', style: textTheme(context).krSubtext1.copyWith(color: colorTheme(context).foregroundText)),
+                              TextSpan(text: '[TPASS 프로필 (차단해제)] 설치', style: textTheme(context).krSubtext1.copyWith(color: colorTheme(context).foregroundText)),
                             ],
                           ),
                           Platform.isAndroid?
@@ -286,7 +286,7 @@ class GuidePage extends StatelessWidget {
               //           style: textTheme(context).krSubtext1.copyWith(fontWeight: FontWeight.bold, color: colorTheme(context).titleText),
               //         ),
               //         TextSpan(
-              //           text: ' 버튼이 활성화되며, 해당 버튼을 누를 시 카메라 허용 프로파일을 다운로드 및 설치할 수 있습니다.',
+              //           text: ' 버튼이 활성화되며, 해당 버튼을 누를 시 카메라 허용 프로필을 다운로드 및 설치할 수 있습니다.',
               //           style: textTheme(context).krSubtext1.copyWith(color: colorTheme(context).titleText),
               //         ),
               //       ],

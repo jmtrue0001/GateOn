@@ -60,8 +60,8 @@ class PermissionPage extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('필수 접근 권한', style: textTheme(context).krSubtitle1.copyWith(color: colorTheme(context).titleText)),
-                          const SizedBox(height: 16),
+                          // Text('필수 접근 권한', style: textTheme(context).krSubtitle1.copyWith(color: colorTheme(context).titleText)),
+                          // const SizedBox(height: 16),
                           Text(
                             '필수 접근 권한을 승인하셔야 TPASS의 기능차단 서비스를 이용하실 수 있습니다.',
                             style: textTheme(context).krBody1,
@@ -69,7 +69,7 @@ class PermissionPage extends StatelessWidget {
                         ],
                       ),
                     ),
-                    const SizedBox(height: 40),
+                    const SizedBox(height: 20),
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 16.0),
                       child: Column(
@@ -84,7 +84,7 @@ class PermissionPage extends StatelessWidget {
                         ],
                       ),
                     ),
-                    const SizedBox(height: 40),
+                    const SizedBox(height: 20),
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 24.0),
                       child: Column(
@@ -125,7 +125,8 @@ class PermissionPage extends StatelessWidget {
               onTap: () {
                 if (state.service && state.privacy) {
                   // context.read<PermissionBloc>().add(AgreeAll());
-                  context.go('/guide');
+                  // context.go('/guide');
+                  context.go('/');
                   HapticFeedback.mediumImpact();
                 }
               },

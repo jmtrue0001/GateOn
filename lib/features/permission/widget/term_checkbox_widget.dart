@@ -16,17 +16,20 @@ class TermCheckboxWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     return switch (termType) {
       TermType.privacy => Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             SizedBox(
-              width: 24,
-              height: 24,
+              width: 26,
+              height: 26,
               child: IconButton(
                 padding: EdgeInsets.zero,
                 onPressed: () {
                   onCheck(!agree);
                 },
-                icon: SvgImage(agree ? 'assets/icons/ic_checkbox_active.svg' : 'assets/icons/ic_checkbox_inactive.svg', color: colorTheme(context).activeRadioColor),
+                icon: SvgImage(
+                    width: 25,
+                    height: 25,
+                    agree ? 'assets/icons/ic_checkbox_active.svg' : 'assets/icons/ic_checkbox_inactive.svg', color: colorTheme(context).activeRadioColor),
               ),
             ),
             const SizedBox(width: 16),
@@ -53,17 +56,20 @@ class TermCheckboxWidget extends StatelessWidget {
           ],
         ),
       TermType.service => Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             SizedBox(
-              width: 24,
-              height: 24,
+              width: 26,
+              height: 26,
               child: IconButton(
                 padding: EdgeInsets.zero,
                 onPressed: () {
                   onCheck(!agree);
                 },
-                icon: SvgImage(agree ? 'assets/icons/ic_checkbox_active.svg' : 'assets/icons/ic_checkbox_inactive.svg', color: colorTheme(context).activeRadioColor),
+                icon: SvgImage(
+                    width: 25,
+                    height: 25,
+                    agree ? 'assets/icons/ic_checkbox_active.svg' : 'assets/icons/ic_checkbox_inactive.svg', color: colorTheme(context).activeRadioColor),
               ),
             ),
             const SizedBox(width: 16),

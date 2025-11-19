@@ -51,3 +51,19 @@ extension UIWindow {
         field.leftViewMode = .always
     }
 }
+// 캡쳐 방지 해제 코드
+// import UIKit
+// import Flutter
+// import GoogleMaps
+//
+// @main
+// @objc class AppDelegate: FlutterAppDelegate {
+//   override func application(
+//       _ application: UIApplication,
+//       didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
+//     ) -> Bool {
+//       GMSServices.provideAPIKey("AIzaSyBMVLlVWgDqjalM0mhUoGPtVBQQ_fylYGc")
+//       GeneratedPluginRegistrant.register(with: self)
+//       return super.application(application, didFinishLaunchingWithOptions: launchOptions)
+//     }
+// }

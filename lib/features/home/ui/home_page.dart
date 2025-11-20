@@ -767,7 +767,8 @@ class HomePage extends StatelessWidget {
                                 _manualEvent(context, controller: controller, state: state, type: true);
                                 break;
                               case InteractionType.location:
-                                context.push('/location');
+                                // context.push('/location');
+                                context.read<HomeBloc>().add(EnableDevice(interaction));
                                 break;
 
                               case InteractionType.delete:

@@ -32,6 +32,7 @@ class HomeBloc extends Bloc<CommonEvent, HomeState> with StreamTransform {
     on<EnableDevice>(_onEnableDevice);
     on<ScanQR>(_onScanQR);
     on<TagNFC>(_onTagNFC);
+    on<Location>(_onLocation);
     on<Manual>(_onManual);
     on<Cancel>(_onCancel);
     on<_TimerTicked>(_onTicked);
@@ -273,6 +274,9 @@ class HomeBloc extends Bloc<CommonEvent, HomeState> with StreamTransform {
       /// manual
       case InteractionType.manual:
         add(Manual(enabled: true, code: event.code));
+      /// location
+      case InteractionType.location:
+        add(Location());
       default:
         break;
     }
@@ -307,7 +311,45 @@ class HomeBloc extends Bloc<CommonEvent, HomeState> with StreamTransform {
     });
   }
 
-  /// 관리자 차단
+  /// 위치기반 해제
+  _onLocation(Location event, Emitter<HomeState> emit) async {
+    final code = await AppConfig.to.storage.read(key: 'code');
+    if (await Permission.location.status != PermissionStatus.granted) {
+      Permission.location.request();
+    } else {
+      await HomeRepository.to.getProfileWithLocation(code ?? '').then((value) async {
+        if (Platform.isAndroid) {
+          final deviceManage = await AndroidMethodChannel.to.checkDeviceAdminStatus();
+          if (!deviceManage) {
+            await AndroidMethodChannel.to.enableDeviceAdmin().then((value) async {
+              await AndroidMethodChannel.to.enableCamera().then((value) {
+                if (!value) {
+                  emit(state.copyWith(status: CommonStatus.success));
+                } else {
+                  emit(state.copyWith(status: CommonStatus.error, errorMessage: '차단 해제에 오류가 발생했습니다..'));
+                }
+              });
+            });
+          } else {
+            await AndroidMethodChannel.to.enableCamera().then((value) {
+              if (!value) {
+                emit(state.copyWith(status: CommonStatus.success));
+              } else {
+                emit(state.copyWith(status: CommonStatus.error, errorMessage: '차단 해제에 오류가 발생했습니다..'));
+              }
+            });
+          }
+        } else {
+          emit(state.copyWith(status: CommonStatus.success, profileUrl: value?.url));
+        }
+
+        await AppConfig.to.storage.write(key: 'profile_status', value: 'enable');
+      }).catchError((error) {
+        String errorMessage = error.toString();  // 에러를 문자열로 변환
+        add(Error(errorMessage: errorMessage));
+      });
+    }
+  }
 
   /// QR 차단
   _onScanQR(ScanQR event, Emitter<HomeState> emit) async {

@@ -62,6 +62,10 @@ class TagNFC extends HomeEvent {
   final bool enabled;
 }
 
+class Location extends HomeEvent {
+  const Location();
+}
+
 class Cancel extends HomeEvent {
   const Cancel();
 }

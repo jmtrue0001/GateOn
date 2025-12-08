@@ -176,6 +176,7 @@ class BanPage extends StatelessWidget {
                         child: InputWidget(
                           maxLength: 10,
                           isPassword: false,
+                          isNumber: true,
                           controller: codeController,
                           hint: '업체코드',
                           errorWidget: const SizedBox(),
@@ -186,6 +187,7 @@ class BanPage extends StatelessWidget {
                         child: InputWidget(
                           maxLength: 10,
                           isPassword: true,
+                          isNumber: true,
                           controller: pwController,
                           hint: '제한해제 코드',
                           errorWidget: const SizedBox(),
@@ -206,13 +208,16 @@ class BanPage extends StatelessWidget {
                       context: context,
                       onPressed: () {
                         Navigator.pop(context);
-                        HomeRepository.to.disableBan(codeController.text, pwController.text).then((value) {
+                        HomeRepository.to.disableBan(codeController.text, pwController.text).then((value) async {
                           if(value == true){
                             if(Platform.isAndroid){
                               AndroidMethodChannel.to.enableCamera();
                             }
-                                AppConfig.to.storage.write(key: 'profile_status', value: 'wait');
-                                context.go('/splash');
+                            HomeRepository.to.updateProfileInstalled(await AppConfig.to.storage.read(key: "deviceId")?? "", false).then((value){
+                              AppConfig.to.storage.write(key: 'profile_status', value: 'wait');
+                              context.go('/splash');
+                            });
+
                           }
 
                         }).catchError((error) {

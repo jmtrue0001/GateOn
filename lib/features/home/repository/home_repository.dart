@@ -96,4 +96,54 @@ class HomeRepository with CommonRepository {
         throw result.$2;
     }
   }
+
+  Future<void> registerUUID(String uuid) async {
+    var result = await post(profileUrl, param: 'mobileconfig', body: {
+      "deviceId": uuid,
+    }, loginRequest: false);
+    switch (result.$1) {
+      case StatusCode.success:
+        return result.$2;
+      case StatusCode.unAuthorized:
+      case StatusCode.notFound:
+      case StatusCode.badRequest:
+      case StatusCode.forbidden:
+      case StatusCode.timeout:
+      case StatusCode.error:
+        throw result.$2;
+    }
+  }
+
+  Future<void> updateProfileInstalled(String uuid, bool profileInstalled) async {
+    var result = await post(profileUrl, param: 'mobileconfig', body: {
+      "deviceId": uuid,
+      "profileInstalled" :  profileInstalled
+    }, loginRequest: false);
+    switch (result.$1) {
+      case StatusCode.success:
+        return result.$2;
+      case StatusCode.unAuthorized:
+      case StatusCode.notFound:
+      case StatusCode.badRequest:
+      case StatusCode.forbidden:
+      case StatusCode.timeout:
+      case StatusCode.error:
+        throw result.$2;
+    }
+  }
+
+  Future<bool> getProfileInstalled(String uuid) async {
+    var result = await get(profileUrl, param: 'profileinstalled?deviceId=${uuid}');
+    switch (result.$1) {
+      case StatusCode.success:
+        return result.$2['data'];
+      case StatusCode.unAuthorized:
+      case StatusCode.notFound:
+      case StatusCode.badRequest:
+      case StatusCode.forbidden:
+      case StatusCode.timeout:
+      case StatusCode.error:
+        throw result.$2;
+    }
+  }
 }

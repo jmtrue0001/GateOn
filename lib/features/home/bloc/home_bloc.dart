@@ -149,9 +149,11 @@ class HomeBloc extends Bloc<CommonEvent, HomeState> with StreamTransform {
     if(Platform.isAndroid){
       emit(state.copyWith(installedTime: installedTime, cameraPermissionStatus: cameraPermissionStatus, blockedTime: blockedTime, acceptedTime: acceptedTime,));
     }else if(Platform.isIOS){
+      HomeRepository.to.getProfileInstalled(await AppConfig.to.storage.read(key: "deviceId")?? "").then((value){
+        AppConfig.to.storage.write(key : "profileInstalled", value: "${value}" );
+      });
       emit(state.copyWith(installedTime: installedTime2, cameraPermissionStatus: cameraPermissionStatus, blockedTime: blockedTime, acceptedTime: acceptedTime));
     }
-
     /// Ticker 시작
     add(SetTicker(permissionStatus: cameraPermissionStatus));
 
@@ -173,7 +175,6 @@ class HomeBloc extends Bloc<CommonEvent, HomeState> with StreamTransform {
             await AppConfig.to.storage.delete(key: 'code'),
           },
         );
-    logger.d(state.enterPrise?.enterpriseFunction?.toJson());
   }
 
   /// Ticker 시작 && 비콘 Subscription 설정
@@ -526,6 +527,19 @@ class HomeBloc extends Bloc<CommonEvent, HomeState> with StreamTransform {
         cameraPermissionStatus = await _checkAndroidAdminStatus();
         logger.d('카메라 상태 체크 : ${cameraPermissionStatus}');
       }
+      // iOS에서 Mobile Config 설치 여부 확인
+      if (Platform.isIOS) {
+        logger.d(cameraPermissionStatus);
+        final platform = MethodChannel('mguard/ios/mobileconfig');
+        final bool result = await platform.invokeMethod('isMobileConfigInstalled');
+        final String? installed =await AppConfig.to.storage.read(key: 'profileInstalled');
+        logger.d(result);
+        logger.d(installed);
+        if("$result" == "false" && await AppConfig.to.storage.read(key: 'profileInstalled') == "true" ){
+          add(const Ban(error: '3'));
+        }
+      }
+
 
       /// 카메라 권한 상태가 변경되었을시
       if (cameraPermissionStatus != state.cameraPermissionStatus) {
@@ -552,7 +566,18 @@ class HomeBloc extends Bloc<CommonEvent, HomeState> with StreamTransform {
             });
             break;
           case PermissionStatus.restricted:
-
+            // iOS에서 Mobile Config 설치 여부 확인
+            if (Platform.isIOS) {
+              final platform = MethodChannel('mguard/ios/mobileconfig');
+              final bool result = await platform.invokeMethod('isMobileConfigInstalled');
+              if (result){
+                /// 서버로 uuid 전송
+                HomeRepository.to.registerUUID(await AppConfig.to.storage.read(key: "deviceId")?? "").catchError((e){
+                  emit(state.copyWith(status: CommonStatus.error, errorMessage: e.toString()));
+                });
+                await AppConfig.to.storage.write(key: "profileInstalled", value: 'true');
+              }
+            }
             /// 카메라를 차단함
             await AppConfig.to.storage.write(key: 'profile_status', value: 'disable');
             AppConfig.to.storage.write(key: 'time_blocked', value: '${DateTime.now().millisecondsSinceEpoch}');

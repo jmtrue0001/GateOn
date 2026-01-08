@@ -14,8 +14,9 @@ class User {
   final String? appVersion;
   final bool? isActive;
   final String? type;
+  final String? profileType;
 
-  const User({this.id, this.disabledAt, this.enabledAt, this.deviceId, this.isActive, this.type, this.appVersion, this.osVersion, this.deviceModel, this.osType});
+  const User({this.id, this.disabledAt, this.enabledAt, this.deviceId, this.isActive, this.type, this.appVersion, this.osVersion, this.deviceModel, this.osType, this.profileType});
 
   factory User.fromJson(Map<String, dynamic> json) => _$UserFromJson(json);
 }

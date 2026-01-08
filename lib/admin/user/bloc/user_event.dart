@@ -19,3 +19,9 @@ class ReInitial extends UserEvent {
 class ExcelDownload extends UserEvent{
   const ExcelDownload();
 }
+
+// class VisitorSseDataReceived extends UserEvent {
+//   const VisitorSseDataReceived(this.data);
+//
+//   final VisitorSseData data;
+// }

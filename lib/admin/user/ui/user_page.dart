@@ -99,7 +99,7 @@ class UserPage extends StatelessWidget {
                             CommonColumn('앱버전'),
                             CommonColumn('OS 버전'),
                             CommonColumn(
-                              '정상 이용여부',
+                              '현재 상태',
                             ),
                           ],
                           filters: const [
@@ -163,13 +163,13 @@ class UserPage extends StatelessWidget {
                                       ],
                                     ),
                                     const SizedBox(height: 16),
-                                    Row(
-                                      children: [
-                                        SizedBox(width: 120, child: Text('허용/차단 여부', style: textTheme(context).krBody1.copyWith(color: const Color(0xff999999)))),
-                                        Text(state.user?.type ?? '허용', style: textTheme(context).krBody2),
-                                      ],
-                                    ),
-                                    const SizedBox(height: 16),
+                                    // Row(
+                                    //   children: [
+                                    //     SizedBox(width: 120, child: Text('허용/차단 여부', style: textTheme(context).krBody1.copyWith(color: const Color(0xff999999)))),
+                                    //     Text(state.user?.type ?? '허용', style: textTheme(context).krBody2),
+                                    //   ],
+                                    // ),
+                                    // const SizedBox(height: 16),
                                     Row(
                                       children: [
                                         SizedBox(width: 120, child: Text('차단 일시', style: textTheme(context).krBody1.copyWith(color: const Color(0xff999999)))),
@@ -186,8 +186,9 @@ class UserPage extends StatelessWidget {
                                     const SizedBox(height: 16),
                                     Row(
                                       children: [
-                                        SizedBox(width: 120, child: Text('정상이용여부', style: textTheme(context).krBody1.copyWith(color: const Color(0xff999999)))),
-                                        state.user?.isActive ?? true ? const Icon(Icons.check, color: Colors.green) : const Icon(Icons.close, color: Colors.red),
+                                        SizedBox(width: 120, child: Text('현재 상태', style: textTheme(context).krBody1.copyWith(color: const Color(0xff999999)))),
+                                        // state.user?.isActive ?? true ? const Icon(Icons.check, color: Colors.green) : const Icon(Icons.close, color: Colors.red),
+                                        Text(typeParser(state.user?.type), style: textTheme(context).krBody2),
                                       ],
                                     ),
                                   ],
@@ -261,7 +262,12 @@ class UserPage extends StatelessWidget {
     return items
         .asMap()
         .entries
-        .map((element) => DataRow(
+        .map((element) {
+          final status = typeParser(element.value.type);
+          final isAbnormal = status == '비정상 사용';
+          final textColor = isAbnormal ? Colors.red : null;
+
+          return DataRow(
                 onSelectChanged: (selected) {
                   if (selected ?? false) {
                     onClick(element.value);
@@ -276,8 +282,9 @@ class UserPage extends StatelessWidget {
                   CommonCell(element.value.deviceModel ?? '-'),
                   CommonCell(element.value.appVersion ?? '-'),
                   CommonCell(element.value.osVersion ?? '-'),
-                  CommonCell(element.value.isActive),
-                ]))
+                  DataCell(Text(status, style: TextStyle(color: textColor))),
+                ]);
+        })
         .toList();
   }
 
@@ -285,13 +292,18 @@ class UserPage extends StatelessWidget {
     return items
         .asMap()
         .entries
-        .map((element) => DataRow(cells: [
-              CommonCell(' ${(meta?.currentPage ?? 1) * (meta?.sizePerPage ?? 10) - (meta?.sizePerPage ?? 10) + element.key + 1}'),
-              CommonCell((timeParser(element.value.createdAt,true))),
-              CommonCell((element.value.classification)),
-              CommonCell(element.value.way),
-              // CommonCell(element.value.nfcInfo),
-            ]))
+        .map((element) {
+          final isAbnormal = element.value.classification == '비정상 사용';
+          final textColor = isAbnormal ? Colors.red : null;
+
+          return DataRow(cells: [
+            CommonCell(' ${(meta?.currentPage ?? 1) * (meta?.sizePerPage ?? 10) - (meta?.sizePerPage ?? 10) + element.key + 1}'),
+            CommonCell((timeParser(element.value.createdAt,true))),
+            DataCell(Text(element.value.classification ?? '-', style: TextStyle(color: textColor))),
+            DataCell(Text(element.value.way ?? '-', style: TextStyle(color: textColor))),
+            // CommonCell(element.value.nfcInfo),
+          ]);
+        })
         .toList();
   }
 }

@@ -30,6 +30,26 @@ String timeParser(String? date, bool showCurrentYear, {bool? second}) {
   return DateFormat('yyyy-MM-dd HH:mm').format(dateData);
 }
 
+String typeParser(String? type){
+  if(type == "C_DISABLE"){
+    return "차단 완료";
+  }else if(type == "C_ENABLE"){
+    return "해제 완료";
+  }else if(type == "T_DISABLE"){
+    return "차단 시도";
+  }else if(type == "T_ENABLE"){
+    return "해제 시도";
+  }else if(type == "ABNORMAL"){
+    return "비정상 사용";
+  }else if(type == "DISABLE"){
+    return "차단";
+  }else if(type == "ENABLE"){
+  return "해제";
+  }else{
+    return '-';
+  }
+}
+
 String numberFormatter(int? number) {
   if (number == null) {
     return '-';

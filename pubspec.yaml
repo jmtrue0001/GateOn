@@ -3,7 +3,7 @@ description: TPASS
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
-version: 1.2.8+159
+version: 1.2.9+162
 environment:
   sdk: '>=3.9.0 <4.0.0'
 
@@ -18,7 +18,7 @@ dependencies:
   bloc: ^8.1.0
   bloc_concurrency: ^0.2.0
   stream_transform: ^2.1.0
-
+  sse: ^4.1.8
   #logic
   http: ^1.1.0
   flutter_secure_storage: ^9.2.2
@@ -69,6 +69,7 @@ dependencies:
   version: ^3.0.2
   app_links: ^3.5.1
   syncfusion_flutter_xlsio: ^29.2.11
+  audioplayers: ^6.1.0
 
   #firebase
 #  firebase_core: ^2.15.1
@@ -101,6 +102,7 @@ flutter:
   assets:
     - assets/icons/
     - assets/images/
+    - assets/sounds/
 
   fonts:
     - family: SUIT

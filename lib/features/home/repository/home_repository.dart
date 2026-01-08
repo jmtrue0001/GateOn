@@ -97,13 +97,11 @@ class HomeRepository with CommonRepository {
     }
   }
 
-  Future<void> registerUUID(String uuid) async {
-    var result = await post(profileUrl, param: 'mobileconfig', body: {
-      "deviceId": uuid,
-    }, loginRequest: false);
+  Future<bool> registerAbnormal(String? code) async {
+    var result = await post(profileUrl, param: 'abnormal', body: {"deviceId": await AppConfig.to.storage.read(key: "deviceId"), 'deviceModel' : AppConfig.to.model, 'osVersion' : AppConfig.to.osVersion, 'appVersion' : AppConfig.to.appVersion, "code": code, 'osType': Platform.isAndroid ? "SAMSUNG" : "APPLE"}, loginRequest: false);
     switch (result.$1) {
       case StatusCode.success:
-        return result.$2;
+        return true;
       case StatusCode.unAuthorized:
       case StatusCode.notFound:
       case StatusCode.badRequest:
@@ -114,10 +112,11 @@ class HomeRepository with CommonRepository {
     }
   }
 
-  Future<void> updateProfileInstalled(String uuid, bool profileInstalled) async {
-    var result = await post(profileUrl, param: 'mobileconfig', body: {
+  Future<void> updateProfileInstalled(String uuid, bool profileInstalled, String type) async {
+    var result = await post(profileUrl, param: 'profileinstalled', body: {
       "deviceId": uuid,
-      "profileInstalled" :  profileInstalled
+      "profileInstalled" :  profileInstalled,
+      "type" : type
     }, loginRequest: false);
     switch (result.$1) {
       case StatusCode.success:

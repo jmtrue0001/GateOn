@@ -213,11 +213,12 @@ class BanPage extends StatelessWidget {
                             if(Platform.isAndroid){
                               AndroidMethodChannel.to.enableCamera();
                             }
-                            HomeRepository.to.updateProfileInstalled(await AppConfig.to.storage.read(key: "deviceId")?? "", false).then((value){
-                              AppConfig.to.storage.write(key: 'profile_status', value: 'wait');
-                              context.go('/splash');
-                            });
-
+                            // HomeRepository.to.updateProfileInstalled(await AppConfig.to.storage.read(key: "deviceId")?? "", false,"C_ENABLE").then((value){
+                            //   AppConfig.to.storage.write(key: 'profile_status', value: 'wait');
+                            //   context.go('/splash');
+                            // });
+                            AppConfig.to.storage.write(key: 'profile_status', value: 'wait');
+                            context.go('/splash');
                           }
 
                         }).catchError((error) {

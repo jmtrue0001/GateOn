@@ -3,6 +3,7 @@ import 'dart:io';
 
 
 import 'package:TPASS/core/core.dart';
+import 'package:audioplayers/audioplayers.dart';
 import 'package:bloc/bloc.dart';
 import "package:convert/convert.dart" show hex;
 import 'package:copy_with_extension/copy_with_extension.dart';
@@ -49,6 +50,7 @@ class HomeBloc extends Bloc<CommonEvent, HomeState> with StreamTransform {
   }
 
   final Ticker _ticker;
+  final AudioPlayer _audioPlayer = AudioPlayer();
 
   static const int _duration = 0;
 
@@ -150,15 +152,15 @@ class HomeBloc extends Bloc<CommonEvent, HomeState> with StreamTransform {
       emit(state.copyWith(installedTime: installedTime, cameraPermissionStatus: cameraPermissionStatus, blockedTime: blockedTime, acceptedTime: acceptedTime,));
     }else if(Platform.isIOS){
       HomeRepository.to.getProfileInstalled(await AppConfig.to.storage.read(key: "deviceId")?? "").then((value){
+        logger.d("서버에서 상태값 : ${value}");
         AppConfig.to.storage.write(key : "profileInstalled", value: "${value}" );
       });
       emit(state.copyWith(installedTime: installedTime2, cameraPermissionStatus: cameraPermissionStatus, blockedTime: blockedTime, acceptedTime: acceptedTime));
     }
     /// Ticker 시작
-    add(SetTicker(permissionStatus: cameraPermissionStatus));
-
+      add(SetTicker(permissionStatus: cameraPermissionStatus));
        }catch(e){
-                  add(Error(errorMessage: e.toString()));
+      add(Error(errorMessage: e.toString()));
        }
 
   }
@@ -529,14 +531,14 @@ class HomeBloc extends Bloc<CommonEvent, HomeState> with StreamTransform {
       }
       // iOS에서 Mobile Config 설치 여부 확인
       if (Platform.isIOS) {
-        logger.d(cameraPermissionStatus);
         final platform = MethodChannel('mguard/ios/mobileconfig');
         final bool result = await platform.invokeMethod('isMobileConfigInstalled');
         final String? installed =await AppConfig.to.storage.read(key: 'profileInstalled');
-        logger.d(result);
-        logger.d(installed);
         if("$result" == "false" && await AppConfig.to.storage.read(key: 'profileInstalled') == "true" ){
+          logger.d(await AppConfig.to.storage.read(key: 'code'));
+          HomeRepository.to.registerAbnormal(await AppConfig.to.storage.read(key: 'code'));
           add(const Ban(error: '3'));
+
         }
       }
 
@@ -546,17 +548,63 @@ class HomeBloc extends Bloc<CommonEvent, HomeState> with StreamTransform {
         switch (cameraPermissionStatus) {
           case PermissionStatus.granted:
             await AppConfig.to.storage.read(key: 'profile_status').then((value) async {
-              logger.d(value);
               switch (value) {
+                case 'enable':
+                  if (Platform.isIOS) {
+                    final platform = MethodChannel('mguard/ios/mobileconfig');
+                    final bool result = await platform.invokeMethod('isMobileConfigInstalled');
+                    if (result){
+                      /// 서버로 uuid 전송
+                      try {
+                        await HomeRepository.to.updateProfileInstalled(await AppConfig.to.storage.read(key: "deviceId")?? "", true, "C_ENABLE");
+                      } catch (e) {
+                        emit(state.copyWith(status: CommonStatus.error, errorMessage: e.toString()));
+                      }
+                      await AppConfig.to.storage.write(key: "profileInstalled", value: 'true');
+                    }
+                  }
+                  /// 카메라 해제 시 알림음 재생 (무음 모드에서도 재생)
+                  await _audioPlayer.setAudioContext(
+                    AudioContext(
+                      iOS: AudioContextIOS(
+                        category: AVAudioSessionCategory.playback,
+                        options: {
+                          AVAudioSessionOptions.mixWithOthers,
+                        },
+                      ),
+                      android: AudioContextAndroid(
+                        isSpeakerphoneOn: true,
+                        stayAwake: false,
+                        contentType: AndroidContentType.sonification,
+                        usageType: AndroidUsageType.alarm,
+                        audioFocus: AndroidAudioFocus.gain,
+                      ),
+                    ),
+                  );
+                  await _audioPlayer.setVolume(1.0);
+                  await _audioPlayer.play(AssetSource('sounds/enable.mp3'));
+                  logger.d('카메라 해제 알림음 재생');
+                  break;
                 case 'wait':
-
+                  if (Platform.isIOS) {
+                    final platform = MethodChannel('mguard/ios/mobileconfig');
+                    final bool result = await platform.invokeMethod('isMobileConfigInstalled');
+                    if (result){
+                      /// 서버로 uuid 전송
+                      try {
+                        await HomeRepository.to.updateProfileInstalled(await AppConfig.to.storage.read(key: "deviceId")?? "", true, "C_ENABLE");
+                      } catch (e) {
+                        emit(state.copyWith(status: CommonStatus.error, errorMessage: e.toString()));
+                      }
+                      await AppConfig.to.storage.write(key: "profileInstalled", value: 'true');
+                    }
+                  }
                   /// 정상적으로 카메라 차단을 해제함
                   await AppConfig.to.storage.write(key: 'profile_status', value: 'enable');
                   AppConfig.to.storage.write(key: 'time_accepted', value: '${DateTime.now().millisecondsSinceEpoch}');
                   emit(state.copyWith(acceptedTime: '${DateTime.now().millisecondsSinceEpoch}'));
                   break;
                 case 'disable':
-
                   /// 카메라 차단을 해제하고 다시 차단함 (비정상 이용)
                   add(const Ban(error: '3'));
                   break;
@@ -572,7 +620,7 @@ class HomeBloc extends Bloc<CommonEvent, HomeState> with StreamTransform {
               final bool result = await platform.invokeMethod('isMobileConfigInstalled');
               if (result){
                 /// 서버로 uuid 전송
-                HomeRepository.to.registerUUID(await AppConfig.to.storage.read(key: "deviceId")?? "").catchError((e){
+                HomeRepository.to.updateProfileInstalled(await AppConfig.to.storage.read(key: "deviceId")?? "", true, "C_DISABLE").catchError((e){
                   emit(state.copyWith(status: CommonStatus.error, errorMessage: e.toString()));
                 });
                 await AppConfig.to.storage.write(key: "profileInstalled", value: 'true');
@@ -582,6 +630,37 @@ class HomeBloc extends Bloc<CommonEvent, HomeState> with StreamTransform {
             await AppConfig.to.storage.write(key: 'profile_status', value: 'disable');
             AppConfig.to.storage.write(key: 'time_blocked', value: '${DateTime.now().millisecondsSinceEpoch}');
             emit(state.copyWith(blockedTime: '${DateTime.now().millisecondsSinceEpoch}'));
+
+            /// 카메라 차단 시 알림음 재생 (무음 모드에서도 재생)
+            try {
+              // 오디오 컨텍스트 설정 (포그라운드에서도 재생되도록)
+              await _audioPlayer.setAudioContext(
+                AudioContext(
+                  iOS: AudioContextIOS(
+                    category: AVAudioSessionCategory.playback,
+                    options: {
+                      AVAudioSessionOptions.mixWithOthers,
+                    },
+                  ),
+                  android: AudioContextAndroid(
+                    isSpeakerphoneOn: true,
+                    stayAwake: false,
+                    contentType: AndroidContentType.sonification,
+                    usageType: AndroidUsageType.alarm,
+                    audioFocus: AndroidAudioFocus.gain,
+                  ),
+                ),
+              );
+              await _audioPlayer.setVolume(1.0);
+              if(Platform.isIOS){
+                await _audioPlayer.play(AssetSource('sounds/disable_ios.mp3'));
+              }else{
+                await _audioPlayer.play(AssetSource('sounds/disable.mp3'));
+              }
+              logger.d('카메라 차단 알림음 재생');
+            } catch (e) {
+              logger.e('알림음 재생 실패: $e');
+            }
             break;
           default:
             add(const Ban(error: '4'));

@@ -60,6 +60,44 @@ class DashboardApi with CommonRepository {
     }
   }
 
+  Future<Model<AllCount>> countTotalDisableVisitors() async {
+    try {
+      var result = await get(visitorUrl, param: 'count/disable', token: TokenType.accessToken);
+      switch (result.$1) {
+        case StatusCode.success:
+          return Model<AllCount>.fromJson(result.$2);
+        case StatusCode.notFound:
+        case StatusCode.unAuthorized:
+        case StatusCode.badRequest:
+        case StatusCode.timeout:
+        case StatusCode.error:
+        case StatusCode.forbidden:
+          throw result.$2;
+      }
+    } on String {
+      rethrow;
+    }
+  }
+
+  Future<Model<AllCount>> countAbnormalVisitors() async {
+    try {
+      var result = await get(visitorUrl, param: 'count/today/abnormal', token: TokenType.accessToken);
+      switch (result.$1) {
+        case StatusCode.success:
+          return Model<AllCount>.fromJson(result.$2);
+        case StatusCode.notFound:
+        case StatusCode.unAuthorized:
+        case StatusCode.badRequest:
+        case StatusCode.timeout:
+        case StatusCode.error:
+        case StatusCode.forbidden:
+          throw result.$2;
+      }
+    } on String {
+      rethrow;
+    }
+  }
+
   Future<Model<List<VisitorModel>>> countMonthVisitors(String date) async {
     try {
       var result = await get(visitorUrl, param: 'count/month', query: 'date=$date', token: TokenType.accessToken);

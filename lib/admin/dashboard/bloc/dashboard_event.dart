@@ -21,3 +21,9 @@ class ChangeYear extends DashboardEvent {
 
   final DateTime dateTime;
 }
+
+// class SseDataReceived extends DashboardEvent {
+//   const SseDataReceived(this.data);
+//
+//   final DashboardSseData data;
+// }

@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:TPASS/core/widget/qr_widget.dart';
 import 'package:TPASS/features/home/repository/home_repository.dart';
 import 'package:TPASS/main.dart';
+import 'package:audioplayers/audioplayers.dart';
 import 'package:auto_size_text/auto_size_text.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:device_info_plus/device_info_plus.dart';
@@ -99,16 +100,42 @@ class HomePage extends StatelessWidget {
             case CommonStatus.failure:
               AppConfig.to.storage.write(key: 'profile_status', value: 'ban');
               // animatedDialog(context, '카메라 권한 제어 중\n비정상적인 접근이 감지되었습니다.\n관리자에게 문의해주세요. 에러코드 : ${state.ban}', () => context.go('/ban'));
-              animatedDialog(context, '카메라 권한 제어 중\n비정상적인 접근이 감지되었습니다.\n관리자에게 문의해주세요.', () => context.go('/ban'));
+              if(state.ban == "3"){
+                animatedDialog(context, '프로파일이 삭제되었습니다.\n관리자에게 문의해주세요.', () => context.go('/ban'));
+              }else{
+                animatedDialog(context, '카메라 권한 제어 중\n비정상적인 접근이 감지되었습니다.\n관리자에게 문의해주세요. 에러코드 : ${state.ban}', () => context.go('/ban'));
+              }
+
               break;
             case CommonStatus.success:
               final code = await AppConfig.to.storage.read(key: 'code');
               logger.d(code);
 
               if (code != null && code.isNotEmpty) {
-                context.read<HomeBloc>().add(GetEnterPrise(code: code));
+                context.read<HomeBloc>().add(GetEnterPrise( code: code));
               }
               if (state.profileUrl.isNotEmpty && Platform.isIOS) {
+                final AudioPlayer _audioPlayer = AudioPlayer();
+                await _audioPlayer.setAudioContext(
+                  AudioContext(
+                    iOS: AudioContextIOS(
+                      category: AVAudioSessionCategory.playback,
+                      options: {
+                        AVAudioSessionOptions.mixWithOthers,
+                      },
+                    ),
+                    android: AudioContextAndroid(
+                      isSpeakerphoneOn: true,
+                      stayAwake: false,
+                      contentType: AndroidContentType.sonification,
+                      usageType: AndroidUsageType.alarm,
+                      audioFocus: AndroidAudioFocus.gain,
+                    ),
+                  ),
+                );
+                await _audioPlayer.setVolume(1.0);
+                await _audioPlayer.play(AssetSource('sounds/install_profile.mp3'));
+
                 logger.d(state.profileUrl);
                 await _launchUrl(state.profileUrl);
                 // await HomeRepository.to.downloadFile(state.profileUrl);
@@ -140,7 +167,9 @@ class HomePage extends StatelessWidget {
               Builder(
                 builder: (context) => IconButton(
                   icon: Icon(Icons.menu, color: state.cameraPermissionStatus.isRestricted ? Colors.white :Colors.blue, size: 35,), // 파란색 아이콘
-                  onPressed: () => Scaffold.of(context).openDrawer(),
+                  onPressed: () {
+                    Scaffold.of(context).openDrawer();
+                  },
                 ),
               ),
             ),
@@ -285,13 +314,14 @@ class HomePage extends StatelessWidget {
                                       ),
                                       child: Lottie.asset('assets/images/camera_spining.json'),
                                     ),
-                                  const SizedBox(height: 40),
+                                  const SizedBox(height: 10),
                                   if (state.cameraPermissionStatus.isRestricted)
                                     Column(
                                       children: [
+                                        // Text(state.timeAgo, style: textTheme(context).krTitle2R.copyWith(color: white, fontSize: 45)),
+                                        Text(state.timeAgo, style: TextStyle(color: Colors.white, fontSize: 45, fontFamily: "Roboto")),
+                                        const SizedBox(height: 16),
                                         Text('기능 차단 작동 중', style: textTheme(context).krTitle1.copyWith(color: white, fontSize: 25)),
-                                        const SizedBox(height: 32),
-                                        Text(state.timeAgo, style: textTheme(context).krTitle2R.copyWith(color: white, fontSize: 24)),
                                       ],
                                     ),
                                   if(state.cameraPermissionStatus.isRestricted)

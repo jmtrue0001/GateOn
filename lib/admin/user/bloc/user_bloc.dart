@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:TPASS/admin/user/repository/user_repository.dart';
 import 'package:bloc/bloc.dart';
 import 'package:copy_with_extension/copy_with_extension.dart';
@@ -13,6 +14,8 @@ part 'user_event.dart';
 part 'user_state.dart';
 
 class UserBloc extends Bloc<CommonEvent, UserState> with StreamTransform {
+  // StreamSubscription<VisitorSseData>? _sseSubscription;
+
   UserBloc() : super(const UserState()) {
     on<Initial>(_onInitial);
     on<Paginate>(_onPaginate);
@@ -20,6 +23,42 @@ class UserBloc extends Bloc<CommonEvent, UserState> with StreamTransform {
     on<DetailPaginate>(_onDetailPaginate);
     on<ReInitial>(_onReInitial);
     on<ExcelDownload>(_onExcelDownload);
+    // on<VisitorSseDataReceived>(_onVisitorSseDataReceived);
+
+    // // SSE 스트림 구독
+    // _subscribeSse();
+  }
+
+  // void _subscribeSse() {
+  //   _sseSubscription = SseService.to.visitorStream.listen((data) {
+  //     add(VisitorSseDataReceived(data));
+  //   });
+  // }
+
+  // void _onVisitorSseDataReceived(VisitorSseDataReceived event, Emitter<UserState> emit) {
+  //   if (event.data.type == 'count-update') {
+  //     // 카운트 업데이트
+  //     emit(state.copyWith(
+  //       userCount: UserCount(
+  //         enabledCnt: event.data.enabledCnt,
+  //         disabledCnt: event.data.disabledCnt,
+  //       ),
+  //     ));
+  //   } else if (event.data.type == 'list-refresh') {
+  //     // 리스트 새로고침 필요
+  //     add(Paginate(
+  //       page: state.page,
+  //       query: state.query,
+  //       filterType: state.filterType,
+  //       orderType: state.orderType,
+  //     ));
+  //   }
+  // }
+
+  @override
+  Future<void> close() {
+    // _sseSubscription?.cancel();
+    return super.close();
   }
 
 
@@ -38,6 +77,7 @@ class UserBloc extends Bloc<CommonEvent, UserState> with StreamTransform {
 
   _onDetail(Detail event, Emitter<UserState> emit) async {
     await UserApi.to.detailUser(event.id).then((value) => emit(state.copyWith(user: value)));
+
     emit(state.copyWith(detail: true, filterType: FilterType.none));
 
     await UserApi.to.userHistory(page: 1, id: event.id).then((value) => emit(state.copyWith(histories: value.data?.items ?? [], detailMeta: value.data?.meta)));
@@ -53,7 +93,7 @@ class UserBloc extends Bloc<CommonEvent, UserState> with StreamTransform {
     });
     emit(state.copyWith(query: event.query, filterType: event.filterType, orderType: event.orderType, detailMeta: value.data?.meta, status: CommonStatus.success, histories: value.data?.items ?? []));
 
-    logger.d(value.data?.meta?.currentPage);
+    logger.d("현재페이지 ${value.data?.meta?.currentPage}");
   }
 
   _onReInitial(ReInitial event, Emitter<UserState> emit) {

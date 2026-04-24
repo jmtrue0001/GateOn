@@ -1,6 +1,6 @@
 enum StatusCode { success, notFound, unAuthorized, badRequest, timeout, forbidden, error }
 
-enum CommonStatus { initial, success, loading, failure, error, dialog }
+enum CommonStatus { initial, success, loading, failure, error, dialog, code, otherMdm, showBlockModal }
 
 enum UploadStatus { initial, success, loading, failure, delete }
 

@@ -162,7 +162,7 @@ class _LocationPageState extends State<LocationPage> {
         });
       }).catchError((error) {
         setState(() {
-          loading = false;
+          loading = false;                                    
         });
         animatedDialog(context, error.toString(), () {});
       });

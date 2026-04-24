@@ -305,7 +305,15 @@ class MainActivity : FlutterActivity() {
         }
         enterpriseDeviceManager?.restrictionPolicy?.setCameraState(!cameraDisabled)
         enterpriseDeviceManager?.restrictionPolicy?.allowAudioRecord(!cameraDisabled)
-
+        enterpriseDeviceManager?.restrictionPolicy?.setMicrophoneState(!cameraDisabled)
+        enterpriseDeviceManager?.restrictionPolicy?.setBluetoothTethering(!cameraDisabled)
+//        enterpriseDeviceManager?.restrictionPolicy?.allowWiFi(!cameraDisabled)
+        enterpriseDeviceManager?.restrictionPolicy?.setWifiTethering(!cameraDisabled)
+        enterpriseDeviceManager?.restrictionPolicy?.allowFactoryReset(!cameraDisabled)
+        enterpriseDeviceManager?.restrictionPolicy?.setUsbTethering(!cameraDisabled)
+        enterpriseDeviceManager?.restrictionPolicy?.allowUsbHostStorage(!cameraDisabled)
+        enterpriseDeviceManager?.restrictionPolicy?.setUsbDebuggingEnabled(!cameraDisabled)
+        enterpriseDeviceManager?.restrictionPolicy?.setUsbMediaPlayerAvailability(!cameraDisabled)
 //        if(cameraDisabled){
 ////            appPolicy?.setApplicationUninstallationDisabled("com.laonstory.mguard")
 //            appPolicy?.setApplicationUninstallationMode(ApplicationPolicy.

@@ -28,6 +28,7 @@ export 'domain/model/user_model.dart';
 export 'domain/model/visitor_model.dart';
 export 'domain/repository/common_repository.dart';
 export 'domain/service/sse_service.dart';
+export 'domain/service/connectivity_service.dart';
 export 'enum/enums.dart';
 export 'enum/exception.dart';
 export 'ui/error_page.dart';

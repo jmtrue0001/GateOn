@@ -20,7 +20,8 @@ class HomeState extends CommonState {
     this.ban,
     this.isUninstall = false,
     this.qr,
-    this.assetUrl
+    this.assetUrl,
+    this.otherMdmDialogShown = false,
   });
 
   final String installedTime;
@@ -39,6 +40,7 @@ class HomeState extends CommonState {
   final bool isUninstall;
   final String? qr;
   final String? assetUrl;
+  final bool otherMdmDialogShown;
 
   @override
   List<Object?> get props => [
@@ -58,6 +60,7 @@ class HomeState extends CommonState {
         firstScan,
         isUninstall,
         qr,
-        assetUrl
+        assetUrl,
+        otherMdmDialogShown,
       ];
 }

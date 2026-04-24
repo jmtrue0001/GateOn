@@ -47,6 +47,12 @@ class Manual extends HomeEvent {
   final String? code;
 }
 
+class Code extends HomeEvent {
+  const Code({this.code});
+
+  final String? code;
+}
+
 class ScanQR extends HomeEvent {
   const ScanQR({this.barcode,this.tagId,this.mode});
 
@@ -112,4 +118,14 @@ class Ban extends HomeEvent {
 });
 
   final String? error;
+}
+
+/// 다른 MDM 체크 이벤트 (기능 차단 버튼 클릭 시)
+class CheckOtherMdm extends HomeEvent {
+  const CheckOtherMdm();
+}
+
+/// 다른 MDM 다이얼로그 닫기 이벤트
+class DismissOtherMdmDialog extends HomeEvent {
+  const DismissOtherMdmDialog();
 }

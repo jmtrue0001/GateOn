@@ -98,6 +98,7 @@ class UserBloc extends Bloc<CommonEvent, UserState> with StreamTransform {
 
   _onReInitial(ReInitial event, Emitter<UserState> emit) {
     emit(state.copyWith(detail: false,filterType: FilterType.disabledAt));
+    add(Initial());
   }
 
   _onExcelDownload(ExcelDownload event, Emitter<UserState> emit){

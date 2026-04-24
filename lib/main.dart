@@ -35,6 +35,9 @@ Future<void> main() async {
         FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
         return true;
       };
+      // 인터넷 연결 감지 서비스 초기화
+      await ConnectivityService.to.init();
+
       if (Platform.isAndroid) {
         // String? id = await FirebaseInstallations.id;
         await AppConfig.to.storage.read(key: 'deviceId').then((value) async {
@@ -59,10 +62,158 @@ Future<void> main() async {
   );
 }
 
-class App extends StatelessWidget {
-  App({super.key});
+class App extends StatefulWidget {
+  const App({super.key});
 
+  @override
+  State<App> createState() => _AppState();
+}
+
+class _AppState extends State<App> {
   final _router = AppRouter();
+  StreamSubscription<bool>? _connectivitySubscription;
+  bool _isDialogShowing = false;
+  OverlayEntry? _noInternetOverlay;
+  late final AppLifecycleListener _lifecycleListener;
+
+  @override
+  void initState() {
+    super.initState();
+    // 인터넷 연결 상태 스트림 구독
+    _startConnectivityListener();
+
+    // 앱 시작 시 현재 연결 상태 확인 (스플래시 이후)
+    Future.delayed(const Duration(seconds: 3), () {
+      _checkCurrentConnection();
+    });
+
+    // 앱 라이프사이클 리스너 설정
+    _lifecycleListener = AppLifecycleListener(
+      onResume: () {
+        // 포그라운드로 돌아올 때 다시 구독 시작
+        logger.d('앱 포그라운드 전환 - 인터넷 감지 재시작');
+        _startConnectivityListener();
+        // 포그라운드 전환 시 현재 연결 상태 즉시 확인
+        _checkCurrentConnection();
+      },
+      onPause: () {
+        // 백그라운드로 갈 때 구독 취소
+        logger.d('앱 백그라운드 전환 - 인터넷 감지 일시중지');
+        _connectivitySubscription?.cancel();
+        _connectivitySubscription = null;
+      },
+    );
+  }
+
+  void _startConnectivityListener() {
+    _connectivitySubscription?.cancel();
+    _connectivitySubscription = ConnectivityService.to.statusStream.listen((isConnected) {
+      if (!isConnected && !_isDialogShowing) {
+        _showNoInternetDialog();
+      }
+    });
+  }
+
+  Future<void> _checkCurrentConnection() async {
+    final isConnected = await ConnectivityService.to.checkConnection();
+    if (!isConnected && !_isDialogShowing) {
+      _showNoInternetDialog();
+    }
+  }
+
+  @override
+  void dispose() {
+    _connectivitySubscription?.cancel();
+    _lifecycleListener.dispose();
+    _removeNoInternetOverlay();
+    super.dispose();
+  }
+
+  void _showNoInternetDialog() {
+    final context = navigatorKey.currentContext;
+    if (context == null || _isDialogShowing) return;
+
+    // Navigator의 root overlay 가져오기
+    final overlay = Navigator.of(context, rootNavigator: true).overlay;
+    if (overlay == null) {
+      logger.d('Overlay를 찾을 수 없음');
+      return;
+    }
+
+    _isDialogShowing = true;
+    logger.d('인터넷 끊김 Overlay 표시');
+
+    _noInternetOverlay = OverlayEntry(
+      builder: (overlayContext) => Positioned.fill(
+        child: Material(
+          color: Colors.black54,
+          child: SafeArea(
+            child: Center(
+              child: Container(
+                margin: const EdgeInsets.symmetric(horizontal: 32),
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(
+                      Icons.wifi_off,
+                      size: 48,
+                      color: Colors.red,
+                    ),
+                    const SizedBox(height: 16),
+                    const Text(
+                      '인터넷 연결이 끊겼습니다.\n네트워크 상태를 확인해주세요.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: Colors.black87,
+                        decoration: TextDecoration.none,
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.black,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                        onPressed: () {
+                          _removeNoInternetOverlay();
+                          if (Platform.isAndroid) {
+                            SystemNavigator.pop();
+                          } else if (Platform.isIOS) {
+                            exit(0);
+                          }
+                        },
+                        child: const Text('확인'),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    overlay.insert(_noInternetOverlay!);
+  }
+
+  void _removeNoInternetOverlay() {
+    _noInternetOverlay?.remove();
+    _noInternetOverlay = null;
+    _isDialogShowing = false;
+  }
 
   @override
   Widget build(BuildContext context) {

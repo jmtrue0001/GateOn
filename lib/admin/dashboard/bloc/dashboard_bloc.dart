@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'package:TPASS/admin/dashboard/repository/dashboard_repository.dart';
 import 'package:TPASS/core/core.dart';
+import 'package:TPASS/core/domain/api/api_url.dart';
+import 'package:TPASS/core/domain/service/sse_service.dart';
 import 'package:bloc/bloc.dart';
 import 'package:copy_with_extension/copy_with_extension.dart';
 
@@ -35,14 +37,13 @@ class DashboardBloc extends Bloc<CommonEvent, DashboardState> {
   //     abnornalCount: event.data.abnormalCount ?? state.abnornalCount,
   //   ));
   // }
-  //
-  // @override
-  // Future<void> close() {
-  //   _sseSubscription?.cancel();
-  //   return super.close();
-  // }
+
+
 
   _onInitial(Initial event, Emitter<DashboardState> emit) async {
+    // SSE 연결 시작
+    // SseService.to.sseConnect('$visitorUrl/sse/dashboard');
+
     await DashboardApi.to.countAllVisitors().then((value) => emit(state.copyWith(allCount: value.data?.cnt)));
     await DashboardApi.to.countTodayVisitors().then((value) => emit(state.copyWith(todayCount: value.data?.cnt)));
     await DashboardApi.to.countDisableVisitors().then((value) => emit(state.copyWith(disableCount: value.data?.cnt)));

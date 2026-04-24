@@ -36,6 +36,7 @@ class HomeBloc extends Bloc<CommonEvent, HomeState> with StreamTransform {
     on<Location>(_onLocation);
     on<Manual>(_onManual);
     on<Cancel>(_onCancel);
+    on<Code>(_onCode);
     on<_TimerTicked>(_onTicked);
     on<ScanBeacon>(_onScanBeacon);
     // on<ScanBeacon>(_onScanBeacon, transformer: throttleDroppable());
@@ -47,6 +48,8 @@ class HomeBloc extends Bloc<CommonEvent, HomeState> with StreamTransform {
     on<Error>(_onError);
     on<Init>(_onInit);
     on<ChangeInstallStatus>(_onChangeInstallStatus);
+    on<CheckOtherMdm>(_onCheckOtherMdm);
+    on<DismissOtherMdmDialog>(_onDismissOtherMdmDialog);
   }
 
   final Ticker _ticker;
@@ -147,15 +150,56 @@ class HomeBloc extends Bloc<CommonEvent, HomeState> with StreamTransform {
     }
 
 
-    /// 상태 저장
+    /// 상태 저장 (Android: otherMdm 체크 후 동시 emit)
     if(Platform.isAndroid){
-      emit(state.copyWith(installedTime: installedTime, cameraPermissionStatus: cameraPermissionStatus, blockedTime: blockedTime, acceptedTime: acceptedTime,));
+      CommonStatus? initialStatus;
+      // restricted인 경우 otherMdm 체크
+      bool otherMdmShown = false;
+      if (cameraPermissionStatus == PermissionStatus.restricted) {
+        final tpassStatus = await AppConfig.to.storage.read(key: 'profile_status');
+        if (tpassStatus != 'disable') {
+          // 다른 MDM이 차단 중
+          initialStatus = CommonStatus.otherMdm;
+          otherMdmShown = true;
+        }
+      }
+      emit(state.copyWith(
+        installedTime: installedTime,
+        cameraPermissionStatus: cameraPermissionStatus,
+        blockedTime: blockedTime,
+        acceptedTime: acceptedTime,
+        status: initialStatus,
+        otherMdmDialogShown: otherMdmShown,
+      ));
     }else if(Platform.isIOS){
       HomeRepository.to.getProfileInstalled(await AppConfig.to.storage.read(key: "deviceId")?? "").then((value){
         logger.d("서버에서 상태값 : ${value}");
         AppConfig.to.storage.write(key : "profileInstalled", value: "${value}" );
       });
-      emit(state.copyWith(installedTime: installedTime2, cameraPermissionStatus: cameraPermissionStatus, blockedTime: blockedTime, acceptedTime: acceptedTime));
+
+      // iOS: otherMdm 체크 후 동시 emit
+      CommonStatus? initialStatus;
+      bool otherMdmShown = false;
+      final iosChannel = MethodChannel('mguard/ios/mobileconfig');
+      try {
+        final Map<dynamic, dynamic> blockInfo = await iosChannel.invokeMethod('getCameraBlockSource');
+        final String blockSourceStr = blockInfo['blockSource'] ?? 'none';
+        if (blockSourceStr == 'otherMdm') {
+          initialStatus = CommonStatus.otherMdm;
+          otherMdmShown = true;
+        }
+      } catch (e) {
+        logger.d('iOS getCameraBlockSource 에러: $e');
+      }
+
+      emit(state.copyWith(
+        installedTime: installedTime2,
+        cameraPermissionStatus: cameraPermissionStatus,
+        blockedTime: blockedTime,
+        acceptedTime: acceptedTime,
+        status: initialStatus,
+        otherMdmDialogShown: otherMdmShown,
+      ));
     }
     /// Ticker 시작
       add(SetTicker(permissionStatus: cameraPermissionStatus));
@@ -173,8 +217,9 @@ class HomeBloc extends Bloc<CommonEvent, HomeState> with StreamTransform {
           (value) => emit(state.copyWith(enterPrise: value.data)),
         )
         .catchError(
-          (error) async => {
-            await AppConfig.to.storage.delete(key: 'code'),
+          (error) async {
+            add(Error(errorMessage: '${error} 업체정보 에러, 코드값 : ${event.code}'));
+            // await AppConfig.to.storage.delete(key: 'code');
           },
         );
   }
@@ -298,6 +343,33 @@ class HomeBloc extends Bloc<CommonEvent, HomeState> with StreamTransform {
 
   /// 수동 차단/허용
   _onManual(Manual event, Emitter<HomeState> emit) async {
+    // 차단 시에만 다른 MDM 체크 (해제 시에는 체크 안함)
+    if (!event.enabled) {
+      if (Platform.isAndroid) {
+        final cameraStatus = await _checkAndroidAdminStatus();
+        final tpassStatus = await AppConfig.to.storage.read(key: 'profile_status');
+
+        // 카메라가 restricted이고 TPASS가 차단한 게 아니면 → 다른 MDM
+        if (cameraStatus == PermissionStatus.restricted && tpassStatus != 'disable' && tpassStatus != 'wait') {
+          emit(state.copyWith(status: CommonStatus.otherMdm, cameraPermissionStatus: cameraStatus, otherMdmDialogShown: true));
+          return;
+        }
+      } else if (Platform.isIOS) {
+        final platform = MethodChannel('mguard/ios/mobileconfig');
+        try {
+          final Map<dynamic, dynamic> blockInfo = await platform.invokeMethod('getCameraBlockSource');
+          final String blockSourceStr = blockInfo['blockSource'] ?? 'none';
+
+          if (blockSourceStr == 'otherMdm') {
+            emit(state.copyWith(status: CommonStatus.otherMdm, cameraPermissionStatus: PermissionStatus.restricted, otherMdmDialogShown: true));
+            return;
+          }
+        } catch (e) {
+          add(Error(errorMessage: 'iOS getCameraBlockSource 에러: $e'));
+        }
+      }
+    }
+
     emit(state.copyWith(status: CommonStatus.initial));
     logger.d(event.enabled);
     await HomeRepository.to.getProfileWithManual(event.code ?? '', event.enabled).then((data) async {
@@ -309,9 +381,32 @@ class HomeBloc extends Bloc<CommonEvent, HomeState> with StreamTransform {
         add(ActionControl(enabled: event.enabled, isActive: data?.isActive ?? true, profileUrl: data?.url, enterprise: data?.enterprise,tagType:"DISABLE"));
       }
 
-    }).catchError((e) {
-      emit(state.copyWith(status: CommonStatus.error, errorMessage: e.toString()));
+    }).catchError((e) async {
+      final isConnected = await ConnectivityService.to.checkConnection();
+      if (!isConnected) {
+        emit(state.copyWith(status: CommonStatus.error, errorMessage: '인터넷 연결을 확인해주세요.'));
+      } else {
+        emit(state.copyWith(status: CommonStatus.error, errorMessage: e.toString()));
+      }
     });
+  }
+
+  _onCode(Code event, Emitter<HomeState> emit) async {
+    await HomeRepository.to
+        .checkCode(event.code)
+        .then(
+          (value) async {
+            await AppConfig.to.storage.write(key: 'code', value: '${event.code}');
+            emit(state.copyWith(status: CommonStatus.initial));
+            add(Location());
+          }
+    )
+        .catchError(
+          (error) async {
+          emit(state.copyWith(status: CommonStatus.error, errorMessage: error));
+        await AppConfig.to.storage.delete(key: 'code');
+      },
+    );
   }
 
   /// 위치기반 해제
@@ -320,11 +415,23 @@ class HomeBloc extends Bloc<CommonEvent, HomeState> with StreamTransform {
     if (await Permission.location.status != PermissionStatus.granted) {
       Permission.location.request();
     } else {
-      await HomeRepository.to.getProfileWithLocation(code ?? '').then((value) async {
-        if (Platform.isAndroid) {
-          final deviceManage = await AndroidMethodChannel.to.checkDeviceAdminStatus();
-          if (!deviceManage) {
-            await AndroidMethodChannel.to.enableDeviceAdmin().then((value) async {
+      if(code == '' || code == null){
+        emit(state.copyWith(status: CommonStatus.code));
+      }else{
+        await HomeRepository.to.getProfileWithLocation(code).then((value) async {
+          if (Platform.isAndroid) {
+            final deviceManage = await AndroidMethodChannel.to.checkDeviceAdminStatus();
+            if (!deviceManage) {
+              await AndroidMethodChannel.to.enableDeviceAdmin().then((value) async {
+                await AndroidMethodChannel.to.enableCamera().then((value) {
+                  if (!value) {
+                    emit(state.copyWith(status: CommonStatus.success));
+                  } else {
+                    emit(state.copyWith(status: CommonStatus.error, errorMessage: '차단 해제에 오류가 발생했습니다..'));
+                  }
+                });
+              });
+            } else {
               await AndroidMethodChannel.to.enableCamera().then((value) {
                 if (!value) {
                   emit(state.copyWith(status: CommonStatus.success));
@@ -332,30 +439,52 @@ class HomeBloc extends Bloc<CommonEvent, HomeState> with StreamTransform {
                   emit(state.copyWith(status: CommonStatus.error, errorMessage: '차단 해제에 오류가 발생했습니다..'));
                 }
               });
-            });
+            }
           } else {
-            await AndroidMethodChannel.to.enableCamera().then((value) {
-              if (!value) {
-                emit(state.copyWith(status: CommonStatus.success));
-              } else {
-                emit(state.copyWith(status: CommonStatus.error, errorMessage: '차단 해제에 오류가 발생했습니다..'));
-              }
-            });
+            emit(state.copyWith(status: CommonStatus.success, profileUrl: value?.url));
           }
-        } else {
-          emit(state.copyWith(status: CommonStatus.success, profileUrl: value?.url));
-        }
 
-        await AppConfig.to.storage.write(key: 'profile_status', value: 'enable');
-      }).catchError((error) {
-        String errorMessage = error.toString();  // 에러를 문자열로 변환
-        add(Error(errorMessage: errorMessage));
-      });
+          await AppConfig.to.storage.write(key: 'profile_status', value: 'enable');
+        }).catchError((error) async {
+          final isConnected = await ConnectivityService.to.checkConnection();
+          if (!isConnected) {
+            add(const Error(errorMessage: '인터넷 연결을 확인해주세요.'));
+          } else {
+            String errorMessage = error.toString();
+            add(Error(errorMessage: errorMessage));
+          }
+        });
+      }
     }
   }
 
   /// QR 차단
   _onScanQR(ScanQR event, Emitter<HomeState> emit) async {
+    // 다른 MDM 체크 (차단 진행 전)
+    if (Platform.isAndroid) {
+      final cameraStatus = await _checkAndroidAdminStatus();
+      final tpassStatus = await AppConfig.to.storage.read(key: 'profile_status');
+
+      // 카메라가 restricted이고 TPASS가 차단한 게 아니면 → 다른 MDM
+      if (cameraStatus == PermissionStatus.restricted && tpassStatus != 'disable' && tpassStatus != 'wait') {
+        emit(state.copyWith(status: CommonStatus.otherMdm, cameraPermissionStatus: cameraStatus, otherMdmDialogShown: true));
+        return;
+      }
+    } else if (Platform.isIOS) {
+      final platform = MethodChannel('mguard/ios/mobileconfig');
+      try {
+        final Map<dynamic, dynamic> blockInfo = await platform.invokeMethod('getCameraBlockSource');
+        final String blockSourceStr = blockInfo['blockSource'] ?? 'none';
+
+        if (blockSourceStr == 'otherMdm') {
+          emit(state.copyWith(status: CommonStatus.otherMdm, cameraPermissionStatus: PermissionStatus.restricted, otherMdmDialogShown: true));
+          return;
+        }
+      } catch (e) {
+        logger.d('iOS getCameraBlockSource 에러: $e');
+      }
+    }
+
     emit(state.copyWith(status: CommonStatus.initial));
     String? tagId;
     if(event.barcode == null && event.tagId != null){
@@ -378,16 +507,44 @@ class HomeBloc extends Bloc<CommonEvent, HomeState> with StreamTransform {
       await AppConfig.to.storage.write(key: 'code', value: data?.enterprise?.code);
       await AppConfig.to.storage.write(key: 'profile_status', value: 'wait');
 
-    }).catchError((error) {
-      logger.d(error);  // 에러 로깅
-      String errorMessage = error.toString();  // 에러를 문자열로 변환
-      add(Error(errorMessage: errorMessage));
-      // add(const Error(errorMessage: '차단 QR을 찾을 수 없습니다.\n다시 시도해주세요.'));
+    }).catchError((error) async {
+      logger.d(error);
+      final isConnected = await ConnectivityService.to.checkConnection();
+      if (!isConnected) {
+        add(const Error(errorMessage: '인터넷 연결을 확인해주세요.'));
+      } else {
+        String errorMessage = error.toString();
+        add(Error(errorMessage: errorMessage));
+      }
     });
   }
 
   /// NFC 태그
   _onTagNFC(TagNFC event, Emitter<HomeState> emit) async {
+    // 다른 MDM 체크 (차단 진행 전)
+    if (Platform.isAndroid) {
+      final cameraStatus = await _checkAndroidAdminStatus();
+      final tpassStatus = await AppConfig.to.storage.read(key: 'profile_status');
+
+      // 카메라가 restricted이고 TPASS가 차단한 게 아니면 → 다른 MDM
+      if (cameraStatus == PermissionStatus.restricted && tpassStatus != 'disable' && tpassStatus != 'wait') {
+        emit(state.copyWith(status: CommonStatus.otherMdm, cameraPermissionStatus: cameraStatus, otherMdmDialogShown: true));
+        return;
+      }
+    } else if (Platform.isIOS) {
+      final platform = MethodChannel('mguard/ios/mobileconfig');
+      try {
+        final Map<dynamic, dynamic> blockInfo = await platform.invokeMethod('getCameraBlockSource');
+        final String blockSourceStr = blockInfo['blockSource'] ?? 'none';
+
+        if (blockSourceStr == 'otherMdm') {
+          emit(state.copyWith(status: CommonStatus.otherMdm, cameraPermissionStatus: PermissionStatus.restricted, otherMdmDialogShown: true));
+          return;
+        }
+      } catch (e) {
+        logger.d('iOS getCameraBlockSource 에러: $e');
+      }
+    }
 
     var nfcIdCode = '';
     if (Platform.isAndroid) {
@@ -413,9 +570,14 @@ class HomeBloc extends Bloc<CommonEvent, HomeState> with StreamTransform {
       await AppConfig.to.storage.write(key: 'code', value: data?.enterprise?.code);
       await AppConfig.to.storage.write(key: 'profile_status', value: 'wait');
 
-    }).catchError((error) {
+    }).catchError((error) async {
       logger.d(error);
-      add(const Error(errorMessage: '차단 NFC을 찾을 수 없습니다.\n다시 시도해주세요.'));
+      final isConnected = await ConnectivityService.to.checkConnection();
+      if (!isConnected) {
+        add(const Error(errorMessage: '인터넷 연결을 확인해주세요.'));
+      } else {
+        add(const Error(errorMessage: '차단 NFC을 찾을 수 없습니다.\n다시 시도해주세요.'));
+      }
     });
     emit(state.copyWith(status: CommonStatus.initial));
   }
@@ -497,6 +659,34 @@ class HomeBloc extends Bloc<CommonEvent, HomeState> with StreamTransform {
 
   /// 비콘 매칭
   _onBeaconMatched(BeaconMatched event, Emitter<HomeState> emit) async {
+    // 차단 시에만 다른 MDM 체크 (해제 시에는 체크 안함)
+    final isDisableAction = event.data?.tagType != 'ENABLE';
+    if (isDisableAction) {
+      if (Platform.isAndroid) {
+        final cameraStatus = await _checkAndroidAdminStatus();
+        final tpassStatus = await AppConfig.to.storage.read(key: 'profile_status');
+
+        // 카메라가 restricted이고 TPASS가 차단한 게 아니면 → 다른 MDM
+        if (cameraStatus == PermissionStatus.restricted && tpassStatus != 'disable' && tpassStatus != 'wait') {
+          emit(state.copyWith(status: CommonStatus.otherMdm, cameraPermissionStatus: cameraStatus, otherMdmDialogShown: true));
+          return;
+        }
+      } else if (Platform.isIOS) {
+        final platform = MethodChannel('mguard/ios/mobileconfig');
+        try {
+          final Map<dynamic, dynamic> blockInfo = await platform.invokeMethod('getCameraBlockSource');
+          final String blockSourceStr = blockInfo['blockSource'] ?? 'none';
+
+          if (blockSourceStr == 'otherMdm') {
+            emit(state.copyWith(status: CommonStatus.otherMdm, cameraPermissionStatus: PermissionStatus.restricted, otherMdmDialogShown: true));
+            return;
+          }
+        } catch (e) {
+          logger.d('iOS getCameraBlockSource 에러: $e');
+        }
+      }
+    }
+
     await AppConfig.to.storage.write(key: 'code', value: event.data?.enterprise?.code);
     await AppConfig.to.storage.write(key: 'profile_status', value: 'wait');
     emit(state.copyWith(status: CommonStatus.initial));
@@ -525,26 +715,66 @@ class HomeBloc extends Bloc<CommonEvent, HomeState> with StreamTransform {
     /// 카메라 권한 상태 체크
     await Permission.camera.status.then((cameraPermissionStatus) async {
       /// 안드로이드 디바이스 어드민 상태체크 + 카메라 체크
+      bool isOtherMdmHandled = false;  // 다른 MDM 처리 여부 플래그
       if (Platform.isAndroid && state.isUninstall == false) {
         cameraPermissionStatus = await _checkAndroidAdminStatus();
         logger.d('카메라 상태 체크 : ${cameraPermissionStatus}');
+
+        /// 카메라 차단 출처 확인 (TPASS vs 다른 MDM)
+        final tpassStatus = await AppConfig.to.storage.read(key: 'profile_status');
+
+        if (cameraPermissionStatus == PermissionStatus.restricted) {
+          // TPASS가 차단 중인지 확인
+          final tpassIsBlocking = tpassStatus == 'wait' || tpassStatus == 'disable';
+          if (!tpassIsBlocking) {
+            // 다른 MDM이 차단 중 - status를 otherMdm으로 변경 (다이얼로그는 표시 안함)
+            if (state.status != CommonStatus.otherMdm) {
+              emit(state.copyWith(status: CommonStatus.otherMdm, cameraPermissionStatus: cameraPermissionStatus));
+            }
+            isOtherMdmHandled = true;
+          }
+        } else if (cameraPermissionStatus == PermissionStatus.granted && state.cameraPermissionStatus.isRestricted) {
+          // 이전: restricted → 현재: granted (해제됨)
+          // 다른 MDM 상태였으면 다른 MDM이 해제한 것
+          if (state.status == CommonStatus.otherMdm) {
+            isOtherMdmHandled = true;  // 다른 MDM이 해제함, 알림음 스킵
+          }
+        }
       }
       // iOS에서 Mobile Config 설치 여부 확인
       if (Platform.isIOS) {
         final platform = MethodChannel('mguard/ios/mobileconfig');
         final bool result = await platform.invokeMethod('isMobileConfigInstalled');
-        final String? installed =await AppConfig.to.storage.read(key: 'profileInstalled');
-        if("$result" == "false" && await AppConfig.to.storage.read(key: 'profileInstalled') == "true" ){
-          logger.d(await AppConfig.to.storage.read(key: 'code'));
+        final String? installed = await AppConfig.to.storage.read(key: 'profileInstalled');
+
+        /// iOS 카메라 차단 출처 확인 (TPASS vs 다른 MDM)
+        final Map<dynamic, dynamic> blockInfo = await platform.invokeMethod('getCameraBlockSource');
+        final String blockSourceStr = blockInfo['blockSource'] ?? 'none';
+
+        if (blockSourceStr == 'otherMdm') {
+          // 다른 MDM이 차단 중 - status를 otherMdm으로 변경 (다이얼로그는 표시 안함)
+          if (state.status != CommonStatus.otherMdm) {
+            emit(state.copyWith(status: CommonStatus.otherMdm, cameraPermissionStatus: cameraPermissionStatus));
+          }
+          isOtherMdmHandled = true;
+        } else if (state.cameraPermissionStatus.isRestricted && !cameraPermissionStatus.isRestricted) {
+          // 이전: restricted → 현재: granted (해제됨)
+          // 다른 MDM 상태였으면 다른 MDM이 해제한 것
+          if (state.status == CommonStatus.otherMdm) {
+            isOtherMdmHandled = true;  // 다른 MDM이 해제함, 알림음 스킵
+          }
+        }
+
+        // TPASS 프로파일이 삭제된 경우 ban
+        if (result == false && installed == "true" && blockSourceStr != 'otherMdm') {
           HomeRepository.to.registerAbnormal(await AppConfig.to.storage.read(key: 'code'));
           add(const Ban(error: '3'));
-
         }
       }
 
 
-      /// 카메라 권한 상태가 변경되었을시
-      if (cameraPermissionStatus != state.cameraPermissionStatus) {
+      /// 카메라 권한 상태가 변경되었을시 (다른 MDM 처리 중이면 스킵)
+      if (cameraPermissionStatus != state.cameraPermissionStatus && !isOtherMdmHandled) {
         switch (cameraPermissionStatus) {
           case PermissionStatus.granted:
             await AppConfig.to.storage.read(key: 'profile_status').then((value) async {
@@ -606,7 +836,7 @@ class HomeBloc extends Bloc<CommonEvent, HomeState> with StreamTransform {
                   break;
                 case 'disable':
                   /// 카메라 차단을 해제하고 다시 차단함 (비정상 이용)
-                  add(const Ban(error: '3'));
+                  add(const Ban(error: '9'));
                   break;
                 default:
                   break;
@@ -652,11 +882,12 @@ class HomeBloc extends Bloc<CommonEvent, HomeState> with StreamTransform {
                 ),
               );
               await _audioPlayer.setVolume(1.0);
-              if(Platform.isIOS){
-                await _audioPlayer.play(AssetSource('sounds/disable_ios.mp3'));
-              }else{
-                await _audioPlayer.play(AssetSource('sounds/disable.mp3'));
-              }
+              // if(Platform.isIOS){
+              //   await _audioPlayer.play(AssetSource('sounds/install_profile.mp3'));
+              // }else{
+              //
+              // }
+              await _audioPlayer.play(AssetSource('sounds/disable.mp3'));
               logger.d('카메라 차단 알림음 재생');
             } catch (e) {
               logger.e('알림음 재생 실패: $e');
@@ -666,6 +897,9 @@ class HomeBloc extends Bloc<CommonEvent, HomeState> with StreamTransform {
             add(const Ban(error: '4'));
             break;
         }
+        emit(state.copyWith(cameraPermissionStatus: cameraPermissionStatus));
+      } else if (cameraPermissionStatus != state.cameraPermissionStatus && isOtherMdmHandled) {
+        // 다른 MDM 처리 중이어도 카메라 상태는 업데이트 (알림음만 스킵)
         emit(state.copyWith(cameraPermissionStatus: cameraPermissionStatus));
       }
       if (blockTime.isNotEmpty) {
@@ -770,5 +1004,46 @@ class HomeBloc extends Bloc<CommonEvent, HomeState> with StreamTransform {
   _onError(Error event, Emitter<HomeState> emit) {
     emit(state.copyWith(status: CommonStatus.error, errorMessage: event.errorMessage));
     emit(state.copyWith(status: CommonStatus.initial));
+  }
+
+  /// 기능 차단 버튼 클릭 시 다른 MDM 체크
+  _onCheckOtherMdm(CheckOtherMdm event, Emitter<HomeState> emit) async {
+    // 먼저 상태를 initial로 변경하여 listener가 다시 호출될 수 있도록 함
+    // emit(state.copyWith(status: CommonStatus.initial));
+
+    if (Platform.isAndroid) {
+      final cameraStatus = await _checkAndroidAdminStatus();
+      final tpassStatus = await AppConfig.to.storage.read(key: 'profile_status');
+
+      // 카메라가 restricted이고 TPASS가 차단한 게 아니면 → 다른 MDM
+      if (cameraStatus == PermissionStatus.restricted && tpassStatus != 'disable' && tpassStatus != 'wait') {
+        emit(state.copyWith(status: CommonStatus.otherMdm, cameraPermissionStatus: cameraStatus, otherMdmDialogShown: true));
+        return;
+      }
+    } else if (Platform.isIOS) {
+      final platform = MethodChannel('mguard/ios/mobileconfig');
+      try {
+        final Map<dynamic, dynamic> blockInfo = await platform.invokeMethod('getCameraBlockSource');
+        final String blockSourceStr = blockInfo['blockSource'] ?? 'none';
+        logger.d(blockSourceStr);
+        if (blockSourceStr == 'otherMdm') {
+          emit(state.copyWith(status: CommonStatus.otherMdm, cameraPermissionStatus: PermissionStatus.restricted, otherMdmDialogShown: true));
+          return;
+        }
+      } catch (e) {
+        logger.d('iOS getCameraBlockSource 에러: $e');
+      }
+    }
+
+    // 다른 MDM이 감지되지 않으면 showBlockModal 상태로 변경
+    emit(state.copyWith(status: CommonStatus.showBlockModal));
+    // 모달이 표시된 후 상태를 리셋하여 다음 클릭 시 다시 열리도록 함
+    emit(state.copyWith(status: CommonStatus.initial));
+  }
+
+  /// 다른 MDM 다이얼로그 닫기
+  /// status는 otherMdm으로 유지하여 UI에서 다른 MDM 차단 상태를 표시할 수 있도록 함
+  _onDismissOtherMdmDialog(DismissOtherMdmDialog event, Emitter<HomeState> emit) {
+    emit(state.copyWith(otherMdmDialogShown: false));
   }
 }

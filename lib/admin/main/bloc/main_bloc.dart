@@ -28,6 +28,7 @@ class MainBloc extends Bloc<CommonEvent, MainState> {
       if (secureString != null) {
         secureData = SecureModel.fromJson(jsonDecode(secureString));
       }
+      logger.d(secureData.loginStatus);
       if (secureData.loginStatus == LoginStatus.logout) {
         emit(state.copyWith(status: CommonStatus.failure));
       } else {

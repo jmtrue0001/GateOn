@@ -45,7 +45,7 @@ class _AddEnterpriseDialogState extends State<AddEnterpriseDialog> {
       child: IntrinsicHeight(
         child: Container(
           width: 800,
-          decoration: BoxDecoration(borderRadius: BorderRadius.circular(16)),
+          decoration: BoxDecoration(borderRadius: BorderRadius.circular(16), color: Colors.white),
           child: Padding(
             padding: const EdgeInsets.all(40.0),
             child: Column(
@@ -63,9 +63,6 @@ class _AddEnterpriseDialogState extends State<AddEnterpriseDialog> {
                                 context: context,
                                 builder: (ctx) {
                                   return AlertDialog.adaptive(
-                                    title: const Text(
-                                      '알림',
-                                    ),
                                     content: Text(
                                       '작성중인 내용이 있습니다. \n정말로 취소하시겠습니까?',
                                       style: textTheme(context).krBody1,

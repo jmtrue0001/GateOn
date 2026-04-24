@@ -167,7 +167,7 @@ class BanPage extends StatelessWidget {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
-                        '업체코드와 사용제한해제 코드를\n입력해주세요.',
+                        '업체코드와 관리자 코드를\n입력해주세요.',
                         style: textTheme(context).krBody1,
                       ),
                       const SizedBox(height: 16),
@@ -189,7 +189,7 @@ class BanPage extends StatelessWidget {
                           isPassword: true,
                           isNumber: true,
                           controller: pwController,
-                          hint: '제한해제 코드',
+                          hint: '관리자 코드',
                           errorWidget: const SizedBox(),
                         ),
                       ),
@@ -213,12 +213,13 @@ class BanPage extends StatelessWidget {
                             if(Platform.isAndroid){
                               AndroidMethodChannel.to.enableCamera();
                             }
-                            // HomeRepository.to.updateProfileInstalled(await AppConfig.to.storage.read(key: "deviceId")?? "", false,"C_ENABLE").then((value){
-                            //   AppConfig.to.storage.write(key: 'profile_status', value: 'wait');
-                            //   context.go('/splash');
-                            // });
-                            AppConfig.to.storage.write(key: 'profile_status', value: 'wait');
-                            context.go('/splash');
+                            HomeRepository.to.updateProfileInstalled(await AppConfig.to.storage.read(key: "deviceId")?? "", false,"C_ENABLE").then((value){
+                              AppConfig.to.storage.write(key: 'profile_status', value: 'wait');
+                              AppConfig.to.storage.write(key: 'profileInstalled', value: 'false');
+                              context.go('/splash');
+                            });
+                            // AppConfig.to.storage.write(key: 'profile_status', value: 'wait');
+                            // context.go('/splash');
                           }
 
                         }).catchError((error) {

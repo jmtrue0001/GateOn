@@ -14,8 +14,9 @@ import Foundation
   ) -> Bool {
     GeneratedPluginRegistrant.register(with: self)
 
-    // ✅ 보안 화면 적용
-    self.window?.makeSecure()
+
+    // 캡쳐 방지 해제 코드
+//     self.window?.makeSecure()
 
     // ✅ Method Channel 설정
     let controller: FlutterViewController = window?.rootViewController as! FlutterViewController
@@ -23,10 +24,16 @@ import Foundation
                                                     binaryMessenger: controller.binaryMessenger)
 
     mobileConfigChannel.setMethodCallHandler { [weak self] (call: FlutterMethodCall, result: @escaping FlutterResult) in
-      if call.method == "isMobileConfigInstalled" {
+      switch call.method {
+      case "isMobileConfigInstalled":
         let isInstalled = self?.isMobileConfigInstalled() ?? false
         result(isInstalled)
-      } else {
+
+      case "getCameraBlockSource":
+        let blockInfo = self?.getCameraBlockSource() ?? [:]
+        result(blockInfo)
+
+      default:
         result(FlutterMethodNotImplemented)
       }
     }
@@ -89,7 +96,35 @@ import Foundation
     }
   }
 
+  // ✅ 카메라 차단 출처 확인 함수
+  func getCameraBlockSource() -> [String: Any] {
+    // 1. TPASS 프로파일 설치 여부 (인증서 신뢰 기반)
+    let tpassProfileInstalled = isMobileConfigInstalled()
 
+    // 2. 카메라 실제 사용 가능 여부 (AVFoundation)
+    let cameraStatus = AVCaptureDevice.authorizationStatus(for: .video)
+    let isCameraRestricted = (cameraStatus == .restricted)
+
+    // 3. 차단 출처 판별
+    var blockSource = "none"
+    if isCameraRestricted {
+        if tpassProfileInstalled {
+            blockSource = "tpass"
+            print("📱 카메라 차단 출처: TPASS")
+        } else {
+            blockSource = "otherMdm"
+            print("📱 카메라 차단 출처: 다른 MDM")
+        }
+    } else {
+        print("📱 카메라 차단 없음")
+    }
+
+    return [
+        "tpassProfileInstalled": tpassProfileInstalled,
+        "cameraRestricted": isCameraRestricted,
+        "blockSource": blockSource
+    ]
+  }
 
   override func applicationWillResignActive(_ application: UIApplication) {
       let blurEffect = UIBlurEffect(style: .light)
@@ -126,19 +161,5 @@ extension UIWindow {
         field.leftViewMode = .always
     }
 }
-// 캡쳐 방지 해제 코드
-// import UIKit
-// import Flutter
-// import GoogleMaps
-//
-// @main
-// @objc class AppDelegate: FlutterAppDelegate {
-//   override func application(
-//       _ application: UIApplication,
-//       didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
-//     ) -> Bool {
-//       GMSServices.provideAPIKey("AIzaSyBMVLlVWgDqjalM0mhUoGPtVBQQ_fylYGc")
-//       GeneratedPluginRegistrant.register(with: self)
-//       return super.application(application, didFinishLaunchingWithOptions: launchOptions)
-//     }
-// }
+
+

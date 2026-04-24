@@ -79,6 +79,9 @@ class SplashBloc extends Bloc<CommonEvent, SplashState> {
   }
 
   _onInitial(Initial event, Emitter<SplashState> emit) async {
+    // 상태 초기화 - 설정에서 돌아왔을 때 상태 변화 감지를 위함
+    emit(state.copyWith(status: CommonStatus.loading));
+
     try {
       PackageInfo packageInfo = await PackageInfo.fromPlatform();
 
@@ -137,7 +140,16 @@ class SplashBloc extends Bloc<CommonEvent, SplashState> {
           });
         }
         if (!guide) {
-          emit(state.copyWith(status: CommonStatus.success, route: '/permission'));
+          // 최초 설치 시에도 권한 체크
+          if ((camera.isGranted || camera.isRestricted) && location.isGranted && bluetooth.isGranted) {
+            emit(state.copyWith(status: CommonStatus.success, route: '/permission'));
+          } else {
+            logger.d(camera.isGranted);
+            logger.d(location.isGranted);
+            logger.d(bluetooth.isGranted);
+            logger.d(deviceManage);
+            emit(state.copyWith(status: CommonStatus.dialog));
+          }
         } else {
         switch ((camera, location, bluetooth, deviceManage)) {
           case (PermissionStatus.restricted, PermissionStatus.granted, PermissionStatus.granted, true):
@@ -199,7 +211,7 @@ class SplashBloc extends Bloc<CommonEvent, SplashState> {
             if (camera.isGranted && location.isGranted && bluetooth.isGranted) {
               emit(state.copyWith(status: CommonStatus.success, route: '/permission'));
             } else {
-              emit(state.copyWith(status: CommonStatus.initial));
+              emit(state.copyWith(status: CommonStatus.dialog));
             }
             break;
           case (_, PermissionStatus.denied, _, _):
@@ -207,7 +219,7 @@ class SplashBloc extends Bloc<CommonEvent, SplashState> {
             if (camera.isGranted && location.isGranted && bluetooth.isGranted) {
               emit(state.copyWith(status: CommonStatus.success, route: '/permission'));
             } else {
-              emit(state.copyWith(status: CommonStatus.initial));
+              emit(state.copyWith(status: CommonStatus.dialog));
             }
             break;
           case (_, _, PermissionStatus.denied, _):
@@ -215,7 +227,7 @@ class SplashBloc extends Bloc<CommonEvent, SplashState> {
             if (camera.isGranted && location.isGranted && bluetooth.isGranted) {
               emit(state.copyWith(status: CommonStatus.success, route: '/permission'));
             } else {
-              emit(state.copyWith(status: CommonStatus.initial));
+              emit(state.copyWith(status: CommonStatus.dialog));
             }
             break;
           case (_, _, _, false):
@@ -227,7 +239,7 @@ class SplashBloc extends Bloc<CommonEvent, SplashState> {
                 if (deviceManage) {
                   emit(state.copyWith(status: CommonStatus.success, route: '/permission'));
                 } else {
-                  emit(state.copyWith(status: CommonStatus.initial));
+                  emit(state.copyWith(status: CommonStatus.dialog));
                 }
               });
             }else {
@@ -235,7 +247,8 @@ class SplashBloc extends Bloc<CommonEvent, SplashState> {
             }
             break;
           case (_, _, _, _):
-            openAppSettings();
+            // 권한 미허용 시 다이얼로그 표시
+            emit(state.copyWith(status: CommonStatus.dialog));
             break;
         }
         }

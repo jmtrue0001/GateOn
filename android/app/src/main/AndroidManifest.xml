@@ -4,6 +4,7 @@
     <!-- Permissions TODO Declare permissions used by application -->
     <uses-permission android:name="com.samsung.android.knox.permission.KNOX_APP_MGMT"/>
     <uses-permission android:name="com.samsung.android.knox.permission.KNOX_HW_CONTROL" />
+    <uses-permission android:name="com.samsung.android.knox.permission.KNOX_CONNECTIVITY_TETHERING" />
     <uses-permission android:name="com.laonstory.supportlibclient.SUPPORT_PERMISSION" />
     <uses-permission android:name="com.samsung.android.knox.permission.KNOX_LICENSE"/>
     <uses-permission android:name="com.samsung.android.knox.permission.KNOX_ENTERPRISE_DEVICE_ADMIN"/>

@@ -5,6 +5,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_icon_dialog/flutter_icon_dialog.dart';
+import 'package:icon_animated/icon_animated.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:simple_ripple_animation/simple_ripple_animation.dart';
 
 import '../core.dart';
@@ -223,30 +225,65 @@ _showFullScreenImage(BuildContext context, String assetUrl) {
 }
 
 animatedDialog(context, String message, Function() onClick) {
-  IconDialog.show(
-      canGoBack: false,
-      context: context,
-      title: "",
-      content: message,
-      buttonTheme: CustomButtonTheme(
-        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-        iconColor: Theme.of(context).primaryColor,
-        contentStyle: textTheme(context).krBody1,
-      ),
-      iconTitle: true,
-      widgets: Container(
-        decoration: const BoxDecoration(
-          color: black,
-          borderRadius: BorderRadius.only(bottomLeft: Radius.circular(8.0), bottomRight: Radius.circular(8.0)),
+  showDialog(
+    context: context,
+    barrierDismissible: false,
+    barrierColor: Colors.black54,
+    builder: (BuildContext context) {
+      return Dialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
         ),
-        width: double.infinity,
-        child: TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              onClick();
-            },
-            child: Text('확인', style: textTheme(context).krBody1.copyWith(color: white))),
-      ));
+        child: Container(
+          decoration: BoxDecoration(
+            color: Theme.of(context).scaffoldBackgroundColor,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(height: 24),
+              const Icon(
+                Icons.warning_amber_rounded,
+                size: 48,
+                color: Colors.orange,
+              ),
+              const SizedBox(height: 16),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: Text(
+                  message,
+                  textAlign: TextAlign.center,
+                  style: textTheme(context).krBody1,
+                ),
+              ),
+              const SizedBox(height: 24),
+              Container(
+                decoration: const BoxDecoration(
+                  color: black,
+                  borderRadius: BorderRadius.only(
+                    bottomLeft: Radius.circular(12),
+                    bottomRight: Radius.circular(12),
+                  ),
+                ),
+                width: double.infinity,
+                child: TextButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                    onClick();
+                  },
+                  child: Text(
+                    '확인',
+                    style: textTheme(context).krBody1.copyWith(color: white),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    },
+  );
 }
 
 showBlockModal(context,EnterpriseFunction? enterpriseFunction, {required Function(InteractionType) onClick}) {
@@ -713,6 +750,75 @@ dialog(BuildContext context, Widget widget) {
     context: context,
     builder: (BuildContext ctx) {
       return widget;
+    },
+  );
+}
+
+/// 필수 권한 미허용 시 다이얼로그
+showPermissionDialog(BuildContext context, {String? message, VoidCallback? onGoToSettings}) {
+  showDialog(
+    context: context,
+    barrierDismissible: false,
+    barrierColor: Colors.black54,
+    builder: (BuildContext context) {
+      return Dialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(
+                Icons.warning_amber_rounded,
+                size: 48,
+                color: Colors.orange,
+              ),
+              const SizedBox(height: 16),
+              Text(
+                '필수 권한 미허용',
+                style: textTheme(context).krTitle1.copyWith(
+                  color: Colors.black87,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                message ?? '앱을 사용하기 위해 필수 권한을 허용해주세요.\n(카메라, 위치, 블루투스)',
+                textAlign: TextAlign.center,
+                style: textTheme(context).krBody1.copyWith(
+                  color: Colors.black54,
+                ),
+              ),
+              const SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.black,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                  onPressed: () {
+                    Navigator.pop(context);
+                    onGoToSettings?.call();
+                    openAppSettings();
+                  },
+                  child: const Text('설정으로 이동'),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
     },
   );
 }

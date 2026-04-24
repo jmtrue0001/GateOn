@@ -298,7 +298,7 @@ class UserPage extends StatelessWidget {
 
           return DataRow(cells: [
             CommonCell(' ${(meta?.currentPage ?? 1) * (meta?.sizePerPage ?? 10) - (meta?.sizePerPage ?? 10) + element.key + 1}'),
-            CommonCell((timeParser(element.value.createdAt,true))),
+            CommonCell((timeParser(element.value.createdAt,true, second: true))),
             DataCell(Text(element.value.classification ?? '-', style: TextStyle(color: textColor))),
             DataCell(Text(element.value.way ?? '-', style: TextStyle(color: textColor))),
             // CommonCell(element.value.nfcInfo),

@@ -44,9 +44,8 @@ class LoginBloc extends Bloc<CommonEvent, LoginState> {
         AppConfig.to.secureModel = secureModel;
 
         // // SSE 연결 시작
-        // SseService.to.connectAll(accessToken);
+        // SseService.to.sseConnect('$visitorUrl/sse/subscribe');
         // logger.d('SSE connections initialized after login');
-
         emit(state.copyWith(status: CommonStatus.success));
       }
     }).catchError((e) {

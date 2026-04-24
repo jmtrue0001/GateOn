@@ -113,7 +113,7 @@ class SettingPage extends StatelessWidget {
                                       Column(
                                         crossAxisAlignment: CrossAxisAlignment.start,
                                         children: [
-                                          Text('주소', style: textTheme(context).krBody1),
+                                          Text('도로명 주소', style: textTheme(context).krBody1),
                                           const SizedBox(height: 8),
                                           BlocBuilder<SettingBloc, SettingState>(
                                             buildWhen: (prev, curr) => prev.address != curr.address,
@@ -172,10 +172,10 @@ class SettingPage extends StatelessWidget {
                                                                 if (!currentFocus.hasPrimaryFocus) {
                                                                   currentFocus.unfocus();
                                                                 }
-                                                                address.text = document.roadAddress?.addressName ?? '';
+                                                                address.text = document.addressName ?? '';
                                                                 context.read<SettingBloc>().add(SelectAddress(index: (state.documents ?? []).indexWhere((element) => element == document)));
                                                               },
-                                                              child: Text(document.roadAddress?.addressName ?? '', style: textTheme(context).krBody1)));
+                                                              child: Text(document.addressName ?? '', style: textTheme(context).krBody1)));
                                                     }).toList(),
                                                   ),
                                                 ));
@@ -388,7 +388,7 @@ class SettingPage extends StatelessWidget {
                                             },
                                           ),
                                           const SizedBox(height: 24),
-                                          Text('관리자/제한해제 코드', style: textTheme(context).krBody1),
+                                          Text('관리자 코드', style: textTheme(context).krBody1),
                                           const SizedBox(height: 8),
                                           BlocSelector<MainBloc, MainState, String?>(
                                             selector: (state) => state.enterpriseInfo?.banDisabledCode,
@@ -563,7 +563,7 @@ class SettingPage extends StatelessWidget {
                                                       ),
                                                       Row(
                                                         children: [
-                                                          Text('관리자/제한해제 코드', style: textTheme(context).krSubtitle1),
+                                                          Text('관리자 코드', style: textTheme(context).krSubtitle1),
                                                           const SizedBox(width: 16),
                                                           CupertinoSwitch(
                                                               value: state.$8,

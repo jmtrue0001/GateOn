@@ -126,31 +126,31 @@ class DashboardPage extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(height: 20),
-                        DataTileContainer(
-                          width: 340,
-                          child: Padding(
-                            padding: const EdgeInsets.all(32),
-                            child: BlocBuilder<DashboardBloc, DashboardState>(
-                              buildWhen: (prev, curr) => prev.disableTotalCount != curr.disableTotalCount,
-                              builder: (context, state) {
-                                return Row(
-                                  crossAxisAlignment: CrossAxisAlignment.center,
-                                  children: [
-                                    Text('현재 차단 방문객 수', style: textTheme(context).krTitle1),
-                                    const Spacer(),
-                                    Text(
-                                      state.disableTotalCount.toString(),
-                                      style: textTheme(context).krTitle1.copyWith(fontSize: 28),
-                                    ),
-                                    const SizedBox(width: 16),
-                                    Text('명', style: textTheme(context).krBody1)
-                                  ],
-                                );
-                              },
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 20),
+                        // DataTileContainer(
+                        //   width: 340,
+                        //   child: Padding(
+                        //     padding: const EdgeInsets.all(32),
+                        //     child: BlocBuilder<DashboardBloc, DashboardState>(
+                        //       buildWhen: (prev, curr) => prev.disableTotalCount != curr.disableTotalCount,
+                        //       builder: (context, state) {
+                        //         return Row(
+                        //           crossAxisAlignment: CrossAxisAlignment.center,
+                        //           children: [
+                        //             Text('현재 차단 방문객 수', style: textTheme(context).krTitle1),
+                        //             const Spacer(),
+                        //             Text(
+                        //               state.disableTotalCount.toString(),
+                        //               style: textTheme(context).krTitle1.copyWith(fontSize: 28),
+                        //             ),
+                        //             const SizedBox(width: 16),
+                        //             Text('명', style: textTheme(context).krBody1)
+                        //           ],
+                        //         );
+                        //       },
+                        //     ),
+                        //   ),
+                        // ),
+                        // const SizedBox(height: 20),
                         DataTileContainer(
                           width: 340,
                           child: Padding(
@@ -333,30 +333,30 @@ class DashboardPage extends StatelessWidget {
                             ),
                           ),
                         ),
-                        DataTileContainer(
-                          width: 340,
-                          child: Padding(
-                            padding: const EdgeInsets.all(32),
-                            child: BlocBuilder<DashboardBloc, DashboardState>(
-                              buildWhen: (prev, curr) => prev.disableTotalCount != curr.disableTotalCount,
-                              builder: (context, state) {
-                                return Row(
-                                  crossAxisAlignment: CrossAxisAlignment.center,
-                                  children: [
-                                    Text('현재 차단 방문객 수', style: textTheme(context).krTitle1),
-                                    const Spacer(),
-                                    Text(
-                                      state.disableTotalCount.toString(),
-                                      style: textTheme(context).krTitle1.copyWith(fontSize: 28),
-                                    ),
-                                    const SizedBox(width: 16),
-                                    Text('명', style: textTheme(context).krBody1)
-                                  ],
-                                );
-                              },
-                            ),
-                          ),
-                        ),
+                        // DataTileContainer(
+                        //   width: 340,
+                        //   child: Padding(
+                        //     padding: const EdgeInsets.all(32),
+                        //     child: BlocBuilder<DashboardBloc, DashboardState>(
+                        //       buildWhen: (prev, curr) => prev.disableTotalCount != curr.disableTotalCount,
+                        //       builder: (context, state) {
+                        //         return Row(
+                        //           crossAxisAlignment: CrossAxisAlignment.center,
+                        //           children: [
+                        //             Text('현재 차단 방문객 수', style: textTheme(context).krTitle1),
+                        //             const Spacer(),
+                        //             Text(
+                        //               state.disableTotalCount.toString(),
+                        //               style: textTheme(context).krTitle1.copyWith(fontSize: 28),
+                        //             ),
+                        //             const SizedBox(width: 16),
+                        //             Text('명', style: textTheme(context).krBody1)
+                        //           ],
+                        //         );
+                        //       },
+                        //     ),
+                        //   ),
+                        // ),
                         DataTileContainer(
                           width: 340,
                           child: Padding(

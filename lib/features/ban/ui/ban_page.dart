@@ -48,7 +48,7 @@ class BanPage extends StatelessWidget {
                               height: 78,
                               width: double.infinity,
                               child: state.enterPrise?.enterpriseFile?.fileName == null
-                                  ? const SvgImage('assets/images/logo_image_horizontal.svg')
+                                  ? const SvgImage('assets/images/logo_image.svg')
                                   : CachedNetworkImage(
                                       imageUrl: '$resourceUrl${state.enterPrise?.enterpriseFile?.fileName ?? ''}',
                                       fit: BoxFit.contain,
@@ -72,7 +72,8 @@ class BanPage extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(height: 56),
-                      Container(
+                      Expanded(
+                      child: Container(
                         width: double.infinity,
                         decoration: BoxDecoration(
                           color: const Color(0xffF7DD21),
@@ -92,14 +93,15 @@ class BanPage extends StatelessWidget {
                               color: Color(0xffF7DD21),
                               borderRadius: BorderRadius.only(topLeft: Radius.circular(200)),
                             ),
-                            child: const Column(
+                            child: Column(
                               children: [
-                                SizedBox(height: 48),
-                                SizedBox(height: 284, child: Image(image: AssetImage('assets/images/ban_lens.png'))),
+                                const SizedBox(height: 48),
+                                Expanded(child: Image(fit: BoxFit.contain, image: const AssetImage('assets/images/ban_lens.png'))),
                               ],
                             ),
                           ),
                         ),
+                      ),
                       ),
                     ],
                   ),
@@ -213,7 +215,7 @@ class BanPage extends StatelessWidget {
                             if(Platform.isAndroid){
                               AndroidMethodChannel.to.enableCamera();
                             }
-                            HomeRepository.to.updateProfileInstalled(await AppConfig.to.storage.read(key: "deviceId")?? "", false,"C_ENABLE").then((value){
+                            HomeRepository.to.updateProfileInstalled(await AppConfig.getDeviceId() ?? "", false,"C_ENABLE").then((value){
                               AppConfig.to.storage.write(key: 'profile_status', value: 'wait');
                               AppConfig.to.storage.write(key: 'profileInstalled', value: 'false');
                               context.go('/splash');

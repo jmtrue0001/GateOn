@@ -1,4 +1,4 @@
-import 'package:TPASS/core/core.dart';
+import 'package:GateON/core/core.dart';
 import 'package:flutter/material.dart';
 
 class PermissionWidget extends StatelessWidget {

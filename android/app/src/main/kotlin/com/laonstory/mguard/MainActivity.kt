@@ -27,6 +27,7 @@ class MainActivity : FlutterActivity() {
     private val methodChannel = "mguard/android"
     private var mContext: Context? = null
     private var channel: MethodChannel? = null
+    private var pendingError: String? = null
 //    private var pendingLicenseResult: MethodChannel.Result? = null
 //    private var lastLicenseResult: Boolean = false
 //
@@ -46,15 +47,14 @@ class MainActivity : FlutterActivity() {
     @Override
     fun onAttachedToEngine(flutterPluginBinding: FlutterPlugin.FlutterPluginBinding) {
         mContext = flutterPluginBinding.applicationContext
-        channel = MethodChannel(flutterPluginBinding.binaryMessenger, methodChannel)
     }
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
-        super.configureFlutterEngine(flutterEngine)
-        MethodChannel(
+        channel = MethodChannel(
             flutterEngine.dartExecutor.binaryMessenger,
             methodChannel
-        ).setMethodCallHandler { call, result ->
+        )
+        channel!!.setMethodCallHandler { call, result ->
 
             when (call.method) {
                 "active" -> {
@@ -64,6 +64,7 @@ class MainActivity : FlutterActivity() {
 
                 "force_active" -> {
                     adminForceActive()
+                    result.success(null)
                 }
 
                 "inactive" -> {
@@ -98,16 +99,31 @@ class MainActivity : FlutterActivity() {
 
                 "uninstall" -> {
                     uninstallApp()
-//                    preventDeviceAdminDeactivation()
+                    result.success("OK")
+                }
+
+                "request_uninstall" -> {
+                    requestUninstall()
                     result.success("OK")
                 }
 
                 "getId" -> {
-                    val id = Settings.Secure.getString(this.contentResolver, Settings.Secure.ANDROID_ID)
-                    result.success(id)
+                    try {
+                        val id = Settings.Secure.getString(this.contentResolver, Settings.Secure.ANDROID_ID)
+                        result.success(id)
+                    } catch (e: Exception) {
+                        Log.w("시스템", "디바이스 고유값 가져오기 실패: ${e.message}")
+                        result.error("GET_ID_ERROR", "디바이스 고유값 가져오기 실패", e.message)
+                    }
                 }
 
+                else -> result.notImplemented()
             }
+        }
+        super.configureFlutterEngine(flutterEngine)
+        pendingError?.let {
+            channel?.invokeMethod("native_error", it)
+            pendingError = null
         }
     }
 
@@ -123,8 +139,16 @@ class MainActivity : FlutterActivity() {
         devicePolicyManager =
             getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager?
         componentName = AppDeviceAdminReceiver.getComponentName(this)
-        enterpriseDeviceManager = EnterpriseDeviceManager.getInstance(this)
-        appPolicy = enterpriseDeviceManager?.getApplicationPolicy()
+        try {
+            enterpriseDeviceManager = EnterpriseDeviceManager.getInstance(this)
+            appPolicy = enterpriseDeviceManager?.getApplicationPolicy()
+        } catch (e: NoClassDefFoundError) {
+            Log.w("Knox", "Samsung Knox not available on this device")
+            pendingError = "Samsung Knox를 지원하지 않는 기기입니다."
+        } catch (e: Exception) {
+            Log.w("Knox", "Knox initialization failed: ${e.message}")
+            pendingError = "Knox 초기화 실패: ${e.message}"
+        }
     }
     companion object {
         private const val DEVICE_ADMIN_ADD_RESULT_ENABLE = 1111
@@ -143,6 +167,8 @@ class MainActivity : FlutterActivity() {
             licenseManager.activateLicense(key)
 
             Log.d("Knox", "Knox 라이센스 활성화 요청 완료")
+        } catch (e: NoClassDefFoundError) {
+            Log.w("Knox", "Knox license manager not available on this device")
         } catch (e: Exception) {
             Log.e("Knox", "License activation failed: ${e.message}", e)
         }
@@ -167,7 +193,7 @@ class MainActivity : FlutterActivity() {
             intent.putExtra(DevicePolicyManager.EXTRA_DEVICE_ADMIN, componentName)
             intent.putExtra(
                 DevicePolicyManager.EXTRA_ADD_EXPLANATION,
-                "TPASS에서는 보안을 위해 아래와 같은 기능을 제한하고 있습니다. 장치 관리자 권한을 허용해야 TPASS를 사용하실 수 있습니다."
+                "GateON에서는 보안을 위해 아래와 같은 기능을 제한하고 있습니다. 장치 관리자 권한을 허용해야 GateON을 사용하실 수 있습니다."
             )
             startActivityForResult(intent, DEVICE_ADMIN_ADD_RESULT_ENABLE)
         } else {
@@ -194,7 +220,7 @@ class MainActivity : FlutterActivity() {
             intent.putExtra(DevicePolicyManager.EXTRA_DEVICE_ADMIN, componentName)
             intent.putExtra(
                 DevicePolicyManager.EXTRA_ADD_EXPLANATION,
-                "TPASS에서는 보안을 위해 아래와 같은 기능을 제한하고 있습니다. 장치 관리자 권한을 허용해야 TPASS를 사용하실 수 있습니다."
+                "GateON에서는 보안을 위해 아래와 같은 기능을 제한하고 있습니다. 장치 관리자 권한을 허용해야 GateON을 사용하실 수 있습니다."
             )
             startActivityForResult(intent, 2)
         } else {
@@ -204,11 +230,23 @@ class MainActivity : FlutterActivity() {
 
     private fun uninstallApp() {
         val intent = Intent(Intent.ACTION_DELETE, Uri.parse("package:com.laonstory.mguard"))
-//        intent.data =
-//        Log.d("DeviceAdmin", " 삭제가 취소되었습니다.")
         startActivityForResult(intent, UNINSTALL_REQUEST_CODE)
+    }
 
-
+    // 삭제 버튼용: admin 해제 후 삭제 다이얼로그 표시. 취소 시 native에서 admin 재활성화 처리.
+    private fun requestUninstall() {
+        enterpriseDeviceManager?.setAdminRemovable(true, "com.laonstory.mguard")
+        val componentName = AppDeviceAdminReceiver.getComponentName(this)
+        val dpm = getSystemService(DevicePolicyManager::class.java)
+        if (dpm?.isAdminActive(componentName) == true) {
+            dpm.getActiveAdmins()?.forEach { admin ->
+                if (admin.packageName == "com.laonstory.mguard") {
+                    dpm.removeActiveAdmin(admin)
+                    Log.d("DeviceAdmin", "requestUninstall: admin 해제")
+                }
+            }
+        }
+        uninstallApp()
     }
 
     private fun adminDisable() {
@@ -261,11 +299,6 @@ class MainActivity : FlutterActivity() {
         if (requestCode == DEVICE_ADMIN_ADD_RESULT_ENABLE) {
             if (resultCode == RESULT_OK) {
                 activateLicense()
-//                enterpriseDeviceManager?.setAdminRemovable(false,"com.laonstory.mguard")
-                channel = MethodChannel(flutterEngine?.dartExecutor?.binaryMessenger!!, methodChannel)
-                if(channel == null){
-                    Log.d("DeviceAdmin", "초기화안됐음")
-                }
                 Log.d("DeviceAdmin", "다시 관리자 활성화 성공")
             }else {
                 adminForceActive();
@@ -274,10 +307,6 @@ class MainActivity : FlutterActivity() {
         if (requestCode == 2) {
             if (resultCode == RESULT_OK) {
                 activateLicense()
-                channel = MethodChannel(flutterEngine?.dartExecutor?.binaryMessenger!!, methodChannel)
-                if(channel == null){
-                    Log.d("DeviceAdmin", "초기화안됐음")
-                }
                 Log.d("DeviceAdmin", "다시 관리자 활성화 성공")
                 channel?.invokeMethod("update", null)
             } else {
@@ -287,14 +316,10 @@ class MainActivity : FlutterActivity() {
         Log.d("DeviceAdmin", " 삭제가 취소되었습니다.1")
         if(requestCode == UNINSTALL_REQUEST_CODE){
             if (resultCode != RESULT_OK) {
-//                enterpriseDeviceManager?.setAdminRemovable(false,"com.laonstory.mguard")
-                activateLicense()
-                channel = MethodChannel(flutterEngine?.dartExecutor?.binaryMessenger!!, methodChannel)
-                if(channel == null){
-                    Log.d("DeviceAdmin", "초기화안됐음")
-                }
-                Log.d("DeviceAdmin", " 삭제가 취소되었습니다.2")
-                channel?.invokeMethod("uninstall_canceled", null)
+                // 삭제 취소: admin이 이미 해제된 상태이므로 재활성화 다이얼로그를 표시
+                // Flutter에는 admin이 재활성화된 후(requestCode==2 RESULT_OK) "update"로 알림
+                Log.d("DeviceAdmin", "삭제가 취소되었습니다. admin 재활성화 시작")
+                adminForceActive()
             }
         }
     }
@@ -306,7 +331,7 @@ class MainActivity : FlutterActivity() {
         enterpriseDeviceManager?.restrictionPolicy?.setCameraState(!cameraDisabled)
         enterpriseDeviceManager?.restrictionPolicy?.allowAudioRecord(!cameraDisabled)
         enterpriseDeviceManager?.restrictionPolicy?.setMicrophoneState(!cameraDisabled)
-        enterpriseDeviceManager?.restrictionPolicy?.setBluetoothTethering(!cameraDisabled)
+//        enterpriseDeviceManager?.restrictionPolicy?.setBluetoothTethering(!cameraDisabled)
 //        enterpriseDeviceManager?.restrictionPolicy?.allowWiFi(!cameraDisabled)
         enterpriseDeviceManager?.restrictionPolicy?.setWifiTethering(!cameraDisabled)
         enterpriseDeviceManager?.restrictionPolicy?.allowFactoryReset(!cameraDisabled)

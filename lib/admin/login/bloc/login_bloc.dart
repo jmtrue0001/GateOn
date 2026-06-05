@@ -1,7 +1,7 @@
 import 'dart:convert';
 
-import 'package:TPASS/admin/login/repository/login_repository.dart';
-import 'package:TPASS/main.dart';
+import 'package:GateON/admin/login/repository/login_repository.dart';
+import 'package:GateON/main.dart';
 import 'package:bloc/bloc.dart';
 import 'package:copy_with_extension/copy_with_extension.dart';
 
@@ -43,9 +43,6 @@ class LoginBloc extends Bloc<CommonEvent, LoginState> {
         await AppConfig.to.shared.setString('secureInfo', jsonEncode(secureModel.toJson()));
         AppConfig.to.secureModel = secureModel;
 
-        // // SSE 연결 시작
-        // SseService.to.sseConnect('$visitorUrl/sse/subscribe');
-        // logger.d('SSE connections initialized after login');
         emit(state.copyWith(status: CommonStatus.success));
       }
     }).catchError((e) {

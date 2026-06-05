@@ -1,14 +1,32 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:go_router/go_router.dart';
 import 'package:http/http.dart' as http;
+import 'package:http/io_client.dart';
 import 'package:http_parser/http_parser.dart';
 
 import '../../../main.dart';
 import '../../core.dart';
 
 mixin CommonRepository {
+  static http.Client? _httpClient;
+  static http.Client get _client {
+    if (kIsWeb) return http.Client();
+    _httpClient ??= IOClient(HttpClient()
+      ..badCertificateCallback = (X509Certificate cert, String host, int port) => true);
+    return _httpClient!;
+  }
+
+  static dynamic _decodeBody(String raw) {
+    try {
+      return jsonDecode(raw);
+    } catch (_) {
+      return {'exceptionMessage': raw.isNotEmpty ? raw : 'Unknown error'};
+    }
+  }
+
   static (StatusCode, dynamic) _checkStatus(http.StreamedResponse response, dynamic body, url, {bool? loginRequest}) {
     logger.d('$url\n=============================================================== \n${jsonEncode(body)}');
     if (response.statusCode == 200) {
@@ -80,10 +98,10 @@ mixin CommonRepository {
     }
     if (body != null) request.body = jsonEncode(body);
     logger.d(request.headers);
-    http.StreamedResponse response = await request.send();
+    http.StreamedResponse response = await _client.send(request);
     logger.d(response.statusCode);
     logger.d(response.toString());
-    return _checkStatus(response, await jsonDecode(await response.stream.bytesToString()), request.url);
+    return _checkStatus(response, _decodeBody(await response.stream.bytesToString()), request.url);
   }
 
   Future<(StatusCode, dynamic)> post(String url, {TokenType token = TokenType.none, String? param, String? query, String? customToken, Map<String, dynamic>? body, bool loginRequest = true}) async {
@@ -105,8 +123,8 @@ mixin CommonRepository {
         break;
     }
     if (body != null) request.body = jsonEncode(body);
-    http.StreamedResponse response = await request.send();
-    return _checkStatus(response, await jsonDecode(await response.stream.bytesToString()), request.url, loginRequest: loginRequest);
+    http.StreamedResponse response = await _client.send(request);
+    return _checkStatus(response, _decodeBody(await response.stream.bytesToString()), request.url, loginRequest: loginRequest);
   }
 
   Future<(StatusCode, dynamic)> postWithImage(String url, {TokenType token = TokenType.none, String? param, String? query, Map<String, dynamic> body = const {}, List<int>? imageByte, List<http.MultipartFile>? images, String? extension}) async {
@@ -114,8 +132,8 @@ mixin CommonRepository {
     if (token == TokenType.accessToken) request.headers.addAll({'X-AUTH-TOKEN-ACCESS': (await _getTokenData()).accessToken});
     if (imageByte != null && imageByte.isNotEmpty) request.files.add(http.MultipartFile.fromBytes('file', imageByte, filename: 'brandImage.$extension', contentType: MediaType('file', 'brandImage')));
     if (images != null && images.isNotEmpty) request.files.addAll(images);
-    http.StreamedResponse response = await request.send();
-    return _checkStatus(response, await jsonDecode(await response.stream.bytesToString()), request.url);
+    http.StreamedResponse response = await _client.send(request);
+    return _checkStatus(response, _decodeBody(await response.stream.bytesToString()), request.url);
   }
 
   Future<(StatusCode, dynamic)> patch(String url, {TokenType token = TokenType.none, String? param, String? query, String? customToken, Map<String, dynamic>? body, bool loginRequest = true}) async {
@@ -123,8 +141,8 @@ mixin CommonRepository {
     request.headers.addAll({'Content-Type': 'application/json'});
     if (token == TokenType.accessToken) request.headers.addAll({'X-AUTH-TOKEN-ACCESS': (await _getTokenData()).accessToken});
     request.body = jsonEncode(body);
-    http.StreamedResponse response = await request.send();
-    return _checkStatus(response, await jsonDecode(await response.stream.bytesToString()), request.url);
+    http.StreamedResponse response = await _client.send(request);
+    return _checkStatus(response, _decodeBody(await response.stream.bytesToString()), request.url);
   }
 
   Future<(StatusCode, dynamic)> patchWithImage(String url, {TokenType token = TokenType.none, String? param, String? query, Map<String, dynamic> body = const {}, List<int>? imageByte, String? extension, List<http.MultipartFile>? images}) async {
@@ -132,15 +150,15 @@ mixin CommonRepository {
     if (token == TokenType.accessToken) request.headers.addAll({'X-AUTH-TOKEN-ACCESS': (await _getTokenData()).accessToken});
     if (imageByte != null && imageByte.isNotEmpty) request.files.add(http.MultipartFile.fromBytes('file', imageByte, filename: 'brandImage.$extension', contentType: MediaType('file', 'brandImage')));
     if (images != null && images.isNotEmpty) request.files.addAll(images);
-    http.StreamedResponse response = await request.send();
-    return _checkStatus(response, await jsonDecode(await response.stream.bytesToString()), request.url);
+    http.StreamedResponse response = await _client.send(request);
+    return _checkStatus(response, _decodeBody(await response.stream.bytesToString()), request.url);
   }
 
   Future<(StatusCode, dynamic)> delete(String url, {TokenType token = TokenType.none, String? param, String? query, Map<String, dynamic>? body}) async {
     final request = http.Request('DELETE', _getUrl(url, param: param, query: query));
     if (token == TokenType.accessToken) request.headers.addAll({'X-AUTH-TOKEN-ACCESS': (await _getTokenData()).accessToken});
     if (body != null) request.body = jsonEncode(body);
-    http.StreamedResponse response = await request.send();
-    return _checkStatus(response, await jsonDecode(await response.stream.bytesToString()), request.url);
+    http.StreamedResponse response = await _client.send(request);
+    return _checkStatus(response, _decodeBody(await response.stream.bytesToString()), request.url);
   }
 }

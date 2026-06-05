@@ -9,7 +9,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>TPASS</string>
+	<string>GateON</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -32,7 +32,7 @@
 	<array>
 		<string>http</string>
 		<string>https</string>
-		<string>tpass</string>
+		<string>GateON</string>
 	</array>
 	<key>CFBundleURLTypes</key>
 	<array>
@@ -43,7 +43,7 @@
 			<string>com.laonstory.mguardApp</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
-				<string>tpass</string>
+				<string>GateON</string>
 			</array>
 		</dict>
 	</array>
@@ -115,5 +115,12 @@
 		<string>D2760000850101</string>
 		<string>00000000000000</string>
 	</array>
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsArbitraryLoads</key>
+		<true/>
+		<key>NSAllowsLocalNetworking</key>
+		<true/>
+	</dict>
 </dict>
 </plist>

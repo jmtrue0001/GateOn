@@ -33,7 +33,7 @@
         </intent>
     </queries>
     <application
-            android:label="TPASS"
+            android:label="GateON"
             android:name="${applicationName}"
             android:icon="@mipmap/ic_launcher"
             android:usesCleartextTraffic="true"
@@ -65,7 +65,7 @@
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
 
-                <data android:scheme="tpass" android:host="flutter" android:pathPrefix="/specificFunction" />
+                <data android:scheme="GateON" android:host="flutter" android:pathPrefix="/specificFunction" />
             </intent-filter>
 
         </activity>

@@ -99,7 +99,7 @@ import Foundation
   // ✅ 카메라 차단 출처 확인 함수
   func getCameraBlockSource() -> [String: Any] {
     // 1. TPASS 프로파일 설치 여부 (인증서 신뢰 기반)
-    let tpassProfileInstalled = isMobileConfigInstalled()
+    let gateOnProfileInstalled = isMobileConfigInstalled()
 
     // 2. 카메라 실제 사용 가능 여부 (AVFoundation)
     let cameraStatus = AVCaptureDevice.authorizationStatus(for: .video)
@@ -108,9 +108,9 @@ import Foundation
     // 3. 차단 출처 판별
     var blockSource = "none"
     if isCameraRestricted {
-        if tpassProfileInstalled {
-            blockSource = "tpass"
-            print("📱 카메라 차단 출처: TPASS")
+        if gateOnProfileInstalled {
+            blockSource = "GateON"
+            print("📱 카메라 차단 출처: GateON")
         } else {
             blockSource = "otherMdm"
             print("📱 카메라 차단 출처: 다른 MDM")
@@ -120,7 +120,7 @@ import Foundation
     }
 
     return [
-        "tpassProfileInstalled": tpassProfileInstalled,
+        "gateOnProfileInstalled": gateOnProfileInstalled,
         "cameraRestricted": isCameraRestricted,
         "blockSource": blockSource
     ]

@@ -1,4 +1,4 @@
-import 'package:TPASS/core/core.dart';
+import 'package:GateON/core/core.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';

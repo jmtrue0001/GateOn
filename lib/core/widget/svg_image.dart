@@ -11,8 +11,17 @@ class SvgImage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (!assetName.endsWith('.svg')) {
+      return Image.asset(
+        assetName,
+        height: height,
+        width: width,
+        color: color,
+        colorBlendMode: color != null ? BlendMode.srcIn : null,
+        fit: BoxFit.contain,
+      );
+    }
     final ColorFilter? colorFilter = color == null ? null : ColorFilter.mode(color!, BlendMode.srcIn);
-
     return SvgPicture.asset(assetName, colorFilter: colorFilter, height: height, width: width);
   }
 }

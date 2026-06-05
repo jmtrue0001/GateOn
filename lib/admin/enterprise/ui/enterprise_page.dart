@@ -1,5 +1,5 @@
-import 'package:TPASS/admin/enterprise/bloc/enterprise_bloc.dart';
-import 'package:TPASS/admin/enterprise/widget/enterprise_dialog.dart';
+import 'package:GateON/admin/enterprise/bloc/enterprise_bloc.dart';
+import 'package:GateON/admin/enterprise/widget/enterprise_dialog.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';

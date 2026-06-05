@@ -1,4 +1,4 @@
-import 'package:TPASS/core/core.dart';
+import 'package:GateON/core/core.dart';
 
 class DeviceApi with CommonRepository {
   static DeviceApi get to => DeviceApi();

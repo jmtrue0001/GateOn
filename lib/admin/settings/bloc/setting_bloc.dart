@@ -85,9 +85,6 @@ class SettingBloc extends Bloc<CommonEvent, SettingState> {
     await SettingApi.to.submitIdPw(event.data, imageBytes: []).then((value) async {
       Navigator.pop(navigatorKey.currentContext!);
 
-      // // SSE 연결 해제
-      // SseService.to.disconnectAll();
-      // logger.d('SSE connections disconnected after logout');
 
       var secureModel = SecureModel(
         tokenData: TokenData(),

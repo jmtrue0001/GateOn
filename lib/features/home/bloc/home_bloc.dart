@@ -2,9 +2,10 @@ import 'dart:async';
 import 'dart:io';
 
 
-import 'package:TPASS/core/core.dart';
+import 'package:GateON/core/core.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:bloc/bloc.dart';
+import 'package:bloc_concurrency/bloc_concurrency.dart';
 import "package:convert/convert.dart" show hex;
 import 'package:copy_with_extension/copy_with_extension.dart';
 import 'package:flutter/material.dart';
@@ -37,7 +38,7 @@ class HomeBloc extends Bloc<CommonEvent, HomeState> with StreamTransform {
     on<Manual>(_onManual);
     on<Cancel>(_onCancel);
     on<Code>(_onCode);
-    on<_TimerTicked>(_onTicked);
+    on<_TimerTicked>(_onTicked, transformer: droppable());
     on<ScanBeacon>(_onScanBeacon);
     // on<ScanBeacon>(_onScanBeacon, transformer: throttleDroppable());
     on<BeaconDetected>(_onBeaconDetected, transformer: throttleDroppable());
@@ -73,12 +74,24 @@ class HomeBloc extends Bloc<CommonEvent, HomeState> with StreamTransform {
     try{
     /// set initial value
     var cameraPermissionStatus = await Permission.camera.status;
-    await AppConfig.to.storage.write(key: 'guide_status', value: 'true');
-    final installedTime = await AppConfig.to.storage.read(key: 'time_installed');
-    final installedTime2 = await AppConfig.to.shared.getString('time_installed');
-    final blockedTime = await AppConfig.to.storage.read(key: 'time_blocked');
-    final acceptedTime = await AppConfig.to.storage.read(key: 'time_accepted');
-    final code = await AppConfig.to.storage.read(key: 'code');
+
+    // 카메라 상태 즉시 반영하여 흰 화면 방지
+    emit(state.copyWith(cameraPermissionStatus: cameraPermissionStatus));
+
+    // storage 읽기 실패(최초 설치 시 Keystore 미초기화 등)해도 null로 처리하고 계속 진행
+    String installedTime;
+    String installedTime2;
+    String blockedTime;
+    String acceptedTime;
+    String code;
+
+      await AppConfig.to.storage.write(key: 'guide_status', value: 'true');
+      installedTime = await AppConfig.getTimeInstalled();
+      // installedTime2 = AppConfig.to.shared.getString('time_installed')?? '2';
+      blockedTime = _safeTimeValue(await AppConfig.to.storage.read(key: 'time_blocked'));
+      acceptedTime = _safeTimeValue(await AppConfig.to.storage.read(key: 'time_accepted'));
+      code = await AppConfig.to.storage.read(key: 'code') ?? 'null';
+
     final platform =  MethodChannel('mguard/android');
     // TODO: Implement deep linking when app_links is properly configured
     final appLinks = AppLinks();
@@ -91,6 +104,7 @@ class HomeBloc extends Bloc<CommonEvent, HomeState> with StreamTransform {
       logger.d(uri.path);
       if(uri.host == 'flutter' && uri.path == '/specificFunction'){
         logger.d('차단실행');
+
         add(ScanQR(tagId:uri.queryParameters['id']));
       }else{
         logger.d('호스트 또는 경로가 일치하지 않습니다.');
@@ -113,7 +127,7 @@ class HomeBloc extends Bloc<CommonEvent, HomeState> with StreamTransform {
 
 
     /// code가 있으면 기업 정보를 가져온다.
-    if (code != null) {
+    if (code != 'null') {
       add(GetEnterPrise(code: code));
     }
     /// 안드로이드 디바이스 어드민 상태체크
@@ -134,17 +148,13 @@ class HomeBloc extends Bloc<CommonEvent, HomeState> with StreamTransform {
       // });
 
              platform.setMethodCallHandler((call) async {
-                   logger.d("삭제방지 ${state.isUninstall}");
-                   add(ChangeInstallStatus(isUninstall: false));
-                   // logger.d("삭제방지2 ${state.isUninstall}");
-                   // if (call.method == "uninstall_canceled") {
-                   //   logger.d("삭제방지 ${state.isUninstall}");
-                   // }
-                   // if (call.method == "update"){
-                   //   logger.d("관리자 활성화 성공");
-                   //   emit(state.copyWith(isUninstall: false));
-                   // }
-
+                   if (call.method == "native_error") {
+                     final message = call.arguments as String?;
+                     emit(state.copyWith(status: CommonStatus.error, errorMessage: message ?? '알 수 없는 오류가 발생했습니다.'));
+                   } else {
+                     logger.d("삭제방지 ${state.isUninstall}");
+                     add(ChangeInstallStatus(isUninstall: false));
+                   }
                  });
 
     }
@@ -156,7 +166,12 @@ class HomeBloc extends Bloc<CommonEvent, HomeState> with StreamTransform {
       // restricted인 경우 otherMdm 체크
       bool otherMdmShown = false;
       if (cameraPermissionStatus == PermissionStatus.restricted) {
-        final tpassStatus = await AppConfig.to.storage.read(key: 'profile_status');
+        String? tpassStatus;
+        try {
+          tpassStatus = await AppConfig.to.storage.read(key: 'profile_status');
+        } catch (e) {
+          add(Error(errorMessage: 'Storage read profile_status failed: $e'));
+        }
         if (tpassStatus != 'disable') {
           // 다른 MDM이 차단 중
           initialStatus = CommonStatus.otherMdm;
@@ -172,7 +187,7 @@ class HomeBloc extends Bloc<CommonEvent, HomeState> with StreamTransform {
         otherMdmDialogShown: otherMdmShown,
       ));
     }else if(Platform.isIOS){
-      HomeRepository.to.getProfileInstalled(await AppConfig.to.storage.read(key: "deviceId")?? "").then((value){
+      HomeRepository.to.getProfileInstalled(await AppConfig.getDeviceId() ?? "").then((value){
         logger.d("서버에서 상태값 : ${value}");
         AppConfig.to.storage.write(key : "profileInstalled", value: "${value}" );
       });
@@ -189,11 +204,11 @@ class HomeBloc extends Bloc<CommonEvent, HomeState> with StreamTransform {
           otherMdmShown = true;
         }
       } catch (e) {
-        logger.d('iOS getCameraBlockSource 에러: $e');
+        add(Error(errorMessage: 'iOS getCameraBlockSource 에러: $e'));
       }
 
       emit(state.copyWith(
-        installedTime: installedTime2,
+        installedTime: installedTime,
         cameraPermissionStatus: cameraPermissionStatus,
         blockedTime: blockedTime,
         acceptedTime: acceptedTime,
@@ -648,10 +663,10 @@ class HomeBloc extends Bloc<CommonEvent, HomeState> with StreamTransform {
         return;
       }).catchError((error) {
         logger.d('에러 : ${error.toString()}');
-        // Future.delayed(const Duration(seconds: 3), () {
-        //   if (beaconMatched) return;
-        //   add(const Error(errorMessage: '차단 비콘을 찾을 수 없습니다.\n다시 시도해주세요.4'));
-        // });
+        Future.delayed(const Duration(seconds: 3), () {
+          if (beaconMatched) return;
+          add(Error(errorMessage: '${error}'));
+        });
       });
     });
     // emit(state.copyWith(status: CommonStatus.initial));
@@ -786,7 +801,7 @@ class HomeBloc extends Bloc<CommonEvent, HomeState> with StreamTransform {
                     if (result){
                       /// 서버로 uuid 전송
                       try {
-                        await HomeRepository.to.updateProfileInstalled(await AppConfig.to.storage.read(key: "deviceId")?? "", true, "C_ENABLE");
+                        await HomeRepository.to.updateProfileInstalled(await AppConfig.getDeviceId() ?? "", true, "C_ENABLE");
                       } catch (e) {
                         emit(state.copyWith(status: CommonStatus.error, errorMessage: e.toString()));
                       }
@@ -822,7 +837,7 @@ class HomeBloc extends Bloc<CommonEvent, HomeState> with StreamTransform {
                     if (result){
                       /// 서버로 uuid 전송
                       try {
-                        await HomeRepository.to.updateProfileInstalled(await AppConfig.to.storage.read(key: "deviceId")?? "", true, "C_ENABLE");
+                        await HomeRepository.to.updateProfileInstalled(await AppConfig.getDeviceId() ?? "", true, "C_ENABLE");
                       } catch (e) {
                         emit(state.copyWith(status: CommonStatus.error, errorMessage: e.toString()));
                       }
@@ -850,7 +865,7 @@ class HomeBloc extends Bloc<CommonEvent, HomeState> with StreamTransform {
               final bool result = await platform.invokeMethod('isMobileConfigInstalled');
               if (result){
                 /// 서버로 uuid 전송
-                HomeRepository.to.updateProfileInstalled(await AppConfig.to.storage.read(key: "deviceId")?? "", true, "C_DISABLE").catchError((e){
+                HomeRepository.to.updateProfileInstalled(await AppConfig.getDeviceId() ?? "", true, "C_DISABLE").catchError((e){
                   emit(state.copyWith(status: CommonStatus.error, errorMessage: e.toString()));
                 });
                 await AppConfig.to.storage.write(key: "profileInstalled", value: 'true');
@@ -916,7 +931,7 @@ class HomeBloc extends Bloc<CommonEvent, HomeState> with StreamTransform {
   /// 안드로이드 앱 삭제 기능
   _onDelete(Delete event, Emitter<HomeState> emit) async {
     emit(state.copyWith(isUninstall: true));
-    await AndroidMethodChannel.to.disableDeviceAdmin();
+    await AndroidMethodChannel.to.requestUninstall();
     // .then((val) async {
     //   await AndroidMethodChannel.to.checkDeviceAdminStatus().then((value){
     //     logger.d("관리자 해제 후 $value");
@@ -1003,7 +1018,7 @@ class HomeBloc extends Bloc<CommonEvent, HomeState> with StreamTransform {
   /// 에러
   _onError(Error event, Emitter<HomeState> emit) {
     emit(state.copyWith(status: CommonStatus.error, errorMessage: event.errorMessage));
-    emit(state.copyWith(status: CommonStatus.initial));
+    emit(state.copyWith(status: CommonStatus.loading));
   }
 
   /// 기능 차단 버튼 클릭 시 다른 MDM 체크
@@ -1046,4 +1061,11 @@ class HomeBloc extends Bloc<CommonEvent, HomeState> with StreamTransform {
   _onDismissOtherMdmDialog(DismissOtherMdmDialog event, Emitter<HomeState> emit) {
     emit(state.copyWith(otherMdmDialogShown: false));
   }
+}
+
+// storage.read()가 "null" 문자열을 반환하거나 정수가 아닌 값을 반환할 때 빈 문자열로 정규화
+String _safeTimeValue(String? value) {
+  if (value == null || value == 'null') return '';
+  if (int.tryParse(value) == null) return '';
+  return value;
 }

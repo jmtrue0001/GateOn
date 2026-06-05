@@ -1,6 +1,6 @@
 import 'dart:io';
 
-import 'package:TPASS/core/core.dart';
+import 'package:GateON/core/core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:go_router/go_router.dart';
@@ -162,7 +162,7 @@ class _LocationPageState extends State<LocationPage> {
         });
       }).catchError((error) {
         setState(() {
-          loading = false;                                    
+          loading = false;
         });
         animatedDialog(context, error.toString(), () {});
       });

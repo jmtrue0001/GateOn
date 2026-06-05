@@ -1,7 +1,7 @@
 import 'dart:developer';
 
-import 'package:TPASS/core/config/logger.dart';
-import 'package:TPASS/features/home/bloc/home_bloc.dart';
+import 'package:GateON/core/config/logger.dart';
+import 'package:GateON/features/home/bloc/home_bloc.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';

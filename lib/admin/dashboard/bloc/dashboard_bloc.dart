@@ -1,8 +1,7 @@
 import 'dart:async';
-import 'package:TPASS/admin/dashboard/repository/dashboard_repository.dart';
-import 'package:TPASS/core/core.dart';
-import 'package:TPASS/core/domain/api/api_url.dart';
-import 'package:TPASS/core/domain/service/sse_service.dart';
+import 'package:GateON/admin/dashboard/repository/dashboard_repository.dart';
+import 'package:GateON/core/core.dart';
+import 'package:GateON/core/domain/api/api_url.dart';
 import 'package:bloc/bloc.dart';
 import 'package:copy_with_extension/copy_with_extension.dart';
 
@@ -16,33 +15,9 @@ class DashboardBloc extends Bloc<CommonEvent, DashboardState> {
     on<Initial>(_onInitial);
     on<ChangeChartType>(_onChangeChartType);
     on<ChangeDate>(_onChangeDate);
-    // on<SseDataReceived>(_onSseDataReceived);
-
-    // // SSE 스트림 구독
-    // _subscribeSse();
   }
 
-  // void _subscribeSse() {
-  //   _sseSubscription = SseService.to.dashboardStream.listen((data) {
-  //     add(SseDataReceived(data));
-  //   });
-  // }
-  //
-  // void _onSseDataReceived(SseDataReceived event, Emitter<DashboardState> emit) {
-  //   emit(state.copyWith(
-  //     allCount: event.data.allCount ?? state.allCount,
-  //     todayCount: event.data.todayCount ?? state.todayCount,
-  //     disableCount: event.data.disableCount ?? state.disableCount,
-  //     disableTotalCount: event.data.disableTotalCount ?? state.disableTotalCount,
-  //     abnornalCount: event.data.abnormalCount ?? state.abnornalCount,
-  //   ));
-  // }
-
-
-
   _onInitial(Initial event, Emitter<DashboardState> emit) async {
-    // SSE 연결 시작
-    // SseService.to.sseConnect('$visitorUrl/sse/dashboard');
 
     await DashboardApi.to.countAllVisitors().then((value) => emit(state.copyWith(allCount: value.data?.cnt)));
     await DashboardApi.to.countTodayVisitors().then((value) => emit(state.copyWith(todayCount: value.data?.cnt)));

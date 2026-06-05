@@ -1,3 +1,5 @@
+import 'package:firebase_analytics/firebase_analytics.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
@@ -15,11 +17,12 @@ class AppRouter {
     },
     initialLocation: '/splash',
     navigatorKey: navigatorKey,
+    observers: kIsWeb ? [] : [FirebaseAnalyticsObserver(analytics: FirebaseAnalytics.instance)],
     routes: <RouteBase>[
       GoRoute(
           path: '/',
-          builder: (BuildContext context, GoRouterState state) {
-            return const HomePage();
+          pageBuilder: (BuildContext context, GoRouterState state) {
+            return const NoTransitionPage(child: HomePage());
           },
           routes: [
             GoRoute(

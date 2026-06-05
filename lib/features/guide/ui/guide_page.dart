@@ -34,7 +34,7 @@ class GuidePage extends StatelessWidget {
                         Hero(
                             tag: 'logo',
                             child: SvgImage(
-                              'assets/images/logo_image_mini.svg',
+                              'assets/images/logo_image.svg',
                               height: 40,
                               color: colorTheme(context).logoColor,
                             )),
@@ -46,7 +46,7 @@ class GuidePage extends StatelessWidget {
                       ],
                     ),
                     const SizedBox(height: 24),
-                    Text('TPASS는 스마트폰의 기능(카메라, 녹음) 사용을 제어 합니다.', style: textTheme(context).krSubtitle1.copyWith(color: colorTheme(context).titleText)),
+                    Text('GateON은 스마트폰의 기능(카메라, 녹음) 사용을 제어 합니다.', style: textTheme(context).krSubtitle1.copyWith(color: colorTheme(context).titleText)),
                     const SizedBox(height: 16),
                     Platform.isIOS ?
                     Text('카메라 제어를 위해 프로필의 설치가 필요합니다.', style: textTheme(context).krBody1)
@@ -78,7 +78,7 @@ class GuidePage extends StatelessWidget {
                               const SizedBox(width: 16),
                               Platform.isAndroid ?
                               Text('기능 차단 방법', style: textTheme(context).krSubtitle1.copyWith(color: colorTheme(context).foregroundText)) :
-                              Text('TPASS 프로필(차단) 설치 방법', style: textTheme(context).krSubtitle1.copyWith(color: colorTheme(context).foregroundText))
+                              Text('GateON 프로필(차단) 설치 방법', style: textTheme(context).krSubtitle1.copyWith(color: colorTheme(context).foregroundText))
                               ,
                             ],
                           ),
@@ -96,7 +96,7 @@ class GuidePage extends StatelessWidget {
                           ):GuideText(
                             1,
                             textSpan: [
-                              TextSpan(text: '[TPASS 프로필(차단)] 다운로드', style: textTheme(context).krSubtext1.copyWith(color: colorTheme(context).foregroundText)),
+                              TextSpan(text: '[GateON 프로필(차단)] 다운로드', style: textTheme(context).krSubtext1.copyWith(color: colorTheme(context).foregroundText)),
                             ],
                           ),
                           const SizedBox(height: 8),
@@ -145,7 +145,7 @@ class GuidePage extends StatelessWidget {
                           GuideText(
                             4,
                             textSpan: [
-                              TextSpan(text: '[TPASS 프로필 (차단)] 설치', style: textTheme(context).krSubtext1.copyWith(color: colorTheme(context).foregroundText)),
+                              TextSpan(text: '[GateON 프로필 (차단)] 설치', style: textTheme(context).krSubtext1.copyWith(color: colorTheme(context).foregroundText)),
                             ],
                           ),
                           Platform.isAndroid?
@@ -179,7 +179,7 @@ class GuidePage extends StatelessWidget {
                               const SizedBox(width: 16),
                               Platform.isAndroid?
                               Text('기능 허용(차단 해제) 방법', style: textTheme(context).krSubtitle1.copyWith(color: colorTheme(context).foregroundText)):
-                              Text('TPASS 프로필(차단 해제) 설치 방법', style: textTheme(context).krSubtitle1.copyWith(color: colorTheme(context).foregroundText))
+                              Text('GateON 프로필(차단 해제) 설치 방법', style: textTheme(context).krSubtitle1.copyWith(color: colorTheme(context).foregroundText))
                               ,
                             ],
                           ),
@@ -199,7 +199,7 @@ class GuidePage extends StatelessWidget {
                             1,
                             textSpan: [
                               TextSpan(
-                                text: '[TPASS 프로필(차단해제)] ',
+                                text: '[GateON 프로필(차단해제)] ',
                                 style: textTheme(context).krSubtext1.copyWith(fontWeight: FontWeight.bold, color: colorTheme(context).foregroundText),
                               ),
                               TextSpan(text: '다운로드', style: textTheme(context).krSubtext1.copyWith(color: colorTheme(context).foregroundText)),
@@ -251,7 +251,7 @@ class GuidePage extends StatelessWidget {
                           GuideText(
                             4,
                             textSpan: [
-                              TextSpan(text: '[TPASS 프로필 (차단해제)] 설치', style: textTheme(context).krSubtext1.copyWith(color: colorTheme(context).foregroundText)),
+                              TextSpan(text: '[GateON 프로필 (차단해제)] 설치', style: textTheme(context).krSubtext1.copyWith(color: colorTheme(context).foregroundText)),
                             ],
                           ),
                           Platform.isAndroid?

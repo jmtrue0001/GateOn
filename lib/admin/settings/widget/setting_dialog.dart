@@ -1,5 +1,5 @@
-import 'package:TPASS/core/core.dart';
-import 'package:TPASS/core/widget/input_widget.dart';
+import 'package:GateON/core/core.dart';
+import 'package:GateON/core/widget/input_widget.dart';
 import 'package:flutter/material.dart';
 
 class SettingDialog {

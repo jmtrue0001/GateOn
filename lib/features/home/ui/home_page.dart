@@ -1,7 +1,7 @@
 import 'dart:io';
 
-import 'package:TPASS/core/widget/qr_widget.dart';
-import 'package:TPASS/main.dart';
+import 'package:GateON/core/widget/qr_widget.dart';
+import 'package:GateON/main.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:auto_size_text/auto_size_text.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -26,7 +26,7 @@ class HomePage extends StatelessWidget {
   void showAboutDeviceDialog(BuildContext context) async {
     final deviceInfoPlugin = DeviceInfoPlugin();
     final appInfo = await PackageInfo.fromPlatform();
-    final deviceId = await AppConfig.to.storage.read(key: "deviceId");
+    final deviceId = await AppConfig.getDeviceId();
 
     String manufacturer = '';
     String model = '';
@@ -72,8 +72,6 @@ class HomePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final TextEditingController controller = TextEditingController();
-    MobileScannerController? qrViewController;
-    final GlobalKey qrKey = GlobalKey(debugLabel: 'QR');
 
     return BlocProvider(
       create: (context) => HomeBloc(const Ticker())..add(const Initial()),
@@ -282,7 +280,7 @@ class HomePage extends StatelessWidget {
                         height: 78,
                         width: double.infinity,
                         child: state.enterPrise?.enterpriseFile?.fileName == null
-                            ? const SvgImage('assets/images/logo_image_horizontal.svg')
+                            ? const SvgImage('assets/images/logo_image.svg')
                             : CachedNetworkImage(
                             imageUrl: '$resourceUrl${state.enterPrise?.enterpriseFile?.fileName ?? ''}',
                             fit: BoxFit.contain,
@@ -299,13 +297,13 @@ class HomePage extends StatelessWidget {
                       ),
                       const SizedBox(height: 24),
                       Text(
-                        '설치 일시 : ${state.installedTime.isEmpty ? '일시가 저장되지 않음' : DateFormat('yyyy-MM-dd HH:mm:ss').format(DateTime.fromMillisecondsSinceEpoch(int.parse(state.installedTime)))}',
+                        '설치 일시 : ${int.tryParse(state.installedTime) != null ? DateFormat('yyyy-MM-dd HH:mm:ss').format(DateTime.fromMillisecondsSinceEpoch(int.parse(state.installedTime))) : '일시가 저장되지 않음'}',
                         style: textTheme(context).krTitle2R.copyWith(color: state.cameraPermissionStatus.isRestricted && state.status != CommonStatus.otherMdm ? white : null),
                       ),
                       const SizedBox(height: 16),
                       state.cameraPermissionStatus.isRestricted && state.status != CommonStatus.otherMdm
                           ? Text(
-                        '차단 일시 : ${state.blockedTime.isNotEmpty ? DateFormat('yyyy-MM-dd HH:mm:ss').format(DateTime.fromMillisecondsSinceEpoch(int.parse(state.blockedTime))) : '-'}',
+                        '차단 일시 : ${int.tryParse(state.blockedTime) != null ? DateFormat('yyyy-MM-dd HH:mm:ss').format(DateTime.fromMillisecondsSinceEpoch(int.parse(state.blockedTime))) : '-'}',
                         style: textTheme(context).krTitle2R.copyWith(color: state.cameraPermissionStatus.isRestricted && state.status != CommonStatus.otherMdm ? white : null),
                       )
                           : Text('', style: textTheme(context).krTitle2R.copyWith(color: state.cameraPermissionStatus.isRestricted && state.status != CommonStatus.otherMdm ? white : null)),
@@ -614,7 +612,7 @@ class HomePage extends StatelessWidget {
                                             text: '3단계 : ',
                                             children: [
                                               TextSpan(
-                                                text: '[TPASS 프로필(차단)]',
+                                                text: '[GateON 프로필(차단)]',
                                                 style: textTheme(context).krBody2.copyWith(color: const Color(0xff7B878D)),
                                               ),
                                               const TextSpan(text: '다운로드 및 설치')
@@ -689,7 +687,7 @@ class HomePage extends StatelessWidget {
                                             text: '3단계 : ',
                                             children: [
                                               TextSpan(
-                                                text: '[TPASS 프로필(차단)]',
+                                                text: '[GateON 프로필(차단)]',
                                                 style: textTheme(context).krBody2.copyWith(color: const Color(0xff7B878D)),
                                               ),
                                               const TextSpan(text: '다운로드 및 설치')
@@ -765,7 +763,7 @@ class HomePage extends StatelessWidget {
                                             text: '3단계 : ',
                                             children: [
                                               TextSpan(
-                                                text: '[TPASS 프로필(차단)]',
+                                                text: '[GateON 프로필(차단)]',
                                                 style: textTheme(context).krBody2.copyWith(color: const Color(0xff7B878D)),
                                               ),
                                               const TextSpan(text: '다운로드 및 설치')
@@ -841,7 +839,7 @@ class HomePage extends StatelessWidget {
                                             text: '3단계 : ',
                                             children: [
                                               TextSpan(
-                                                text: '[TPASS 프로필(차단)]',
+                                                text: '[GateON 프로필(차단)]',
                                                 style: textTheme(context).krBody2.copyWith(color: const Color(0xff7B878D)),
                                               ),
                                               const TextSpan(text: '다운로드 및 설치')

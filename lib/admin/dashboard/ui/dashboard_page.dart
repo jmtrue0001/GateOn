@@ -1,4 +1,4 @@
-import 'package:TPASS/core/core.dart';
+import 'package:GateON/core/core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -18,7 +18,7 @@ class DashboardPage extends StatelessWidget {
         create: (context) => DashboardBloc()..add(const Initial()),
         child: Stack(
           children: [
-            Container(margin: const EdgeInsets.all(32), alignment: Alignment.bottomRight, child: Image.asset('assets/images/tpass_background.png')),
+            // Container(margin: const EdgeInsets.all(32), alignment: Alignment.bottomRight, child: Image.asset('assets/images/gateon_background.png')),
             StatsTitleWidget(
               text: '대시보드',
               buttons: const [],

@@ -6,7 +6,7 @@ class HomeState extends CommonState {
     super.status,
     super.errorMessage = '카메라 권한 제어 중 오류가 발생하였습니다.\n관리자에게 문의해주세요.',
     this.installedTime = '',
-    this.cameraPermissionStatus = PermissionStatus.denied,
+    this.cameraPermissionStatus = PermissionStatus.granted,
     this.tag,
     this.tickerStatus = TickerStatus.initial,
     this.duration = 0,

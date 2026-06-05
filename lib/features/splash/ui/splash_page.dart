@@ -40,8 +40,8 @@ class _SplashPageState extends State<SplashPage> with WidgetsBindingObserver {
           _wasPaused = false;
           if (_fromPermissionSettings) {
             _returningFromSettings = true;
+            _bloc.add(const Initial());
           }
-          _bloc.add(const Initial());
         }
         break;
       case AppLifecycleState.inactive:

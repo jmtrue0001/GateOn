@@ -1,4 +1,4 @@
-import 'package:TPASS/admin/widget/list_data_widget.dart';
+import 'package:GateON/admin/widget/list_data_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 

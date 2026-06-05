@@ -1,5 +1,5 @@
 
-import 'package:TPASS/core/core.dart';
+import 'package:GateON/core/core.dart';
 import 'package:flutter/services.dart';
 
 const platform = MethodChannel('mguard/android');
@@ -54,6 +54,16 @@ class AndroidMethodChannel {
     }
   }
 
+  // 삭제 버튼용: admin 해제 후 삭제 다이얼로그 표시 (취소 시 native에서 admin 재활성화 처리)
+  Future<void> requestUninstall() async {
+    try {
+      return await platform.invokeMethod('request_uninstall');
+    } on PlatformException {
+      logger.d('에러');
+      rethrow;
+    }
+  }
+
   Future<void> disableCamera() async {
     try {
       return await platform.invokeMethod('disable');
@@ -87,11 +97,11 @@ class AndroidMethodChannel {
     }
   }
 
-  Future<String> getId() async {
+  Future<String?> getId() async {
     try {
       return await platform.invokeMethod('getId');
-    }on PlatformException {
-      rethrow;
+    } on Exception {
+      return null;
     }
   }
 

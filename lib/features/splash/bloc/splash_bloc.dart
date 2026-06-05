@@ -100,9 +100,6 @@ class SplashBloc extends Bloc<CommonEvent, SplashState> {
         // await AppConfig.to.storage.delete(key: 'guide_status');
         final guide = await AppConfig.to.storage.read(key: 'guide_status') == 'true';
         final profileStatus = await AppConfig.to.storage.read(key: 'profile_status');
-        // logger.d(await AppConfig.to.storage.read(key: 'guide_status'));
-        // logger.d(guide);
-        // logger.d("프로필상태${profileStatus}");
         if (profileStatus == 'ban') {
           emit(state.copyWith(status: CommonStatus.success, route: '/ban'));
           return;
@@ -144,10 +141,6 @@ class SplashBloc extends Bloc<CommonEvent, SplashState> {
           if ((camera.isGranted || camera.isRestricted) && location.isGranted && bluetooth.isGranted) {
             emit(state.copyWith(status: CommonStatus.success, route: '/permission'));
           } else {
-            logger.d(camera.isGranted);
-            logger.d(location.isGranted);
-            logger.d(bluetooth.isGranted);
-            logger.d(deviceManage);
             emit(state.copyWith(status: CommonStatus.dialog));
           }
         } else {

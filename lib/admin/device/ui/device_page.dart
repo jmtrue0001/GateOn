@@ -1,5 +1,5 @@
-import 'package:TPASS/admin/device/bloc/device_bloc.dart';
-import 'package:TPASS/admin/device/widget/device_dialog.dart';
+import 'package:GateON/admin/device/bloc/device_bloc.dart';
+import 'package:GateON/admin/device/widget/device_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 

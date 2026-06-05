@@ -1,5 +1,5 @@
 import 'dart:async';
-import 'package:TPASS/admin/user/repository/user_repository.dart';
+import 'package:GateON/admin/user/repository/user_repository.dart';
 import 'package:bloc/bloc.dart';
 import 'package:copy_with_extension/copy_with_extension.dart';
 import 'dart:typed_data';
@@ -14,7 +14,6 @@ part 'user_event.dart';
 part 'user_state.dart';
 
 class UserBloc extends Bloc<CommonEvent, UserState> with StreamTransform {
-  // StreamSubscription<VisitorSseData>? _sseSubscription;
 
   UserBloc() : super(const UserState()) {
     on<Initial>(_onInitial);
@@ -23,41 +22,10 @@ class UserBloc extends Bloc<CommonEvent, UserState> with StreamTransform {
     on<DetailPaginate>(_onDetailPaginate);
     on<ReInitial>(_onReInitial);
     on<ExcelDownload>(_onExcelDownload);
-    // on<VisitorSseDataReceived>(_onVisitorSseDataReceived);
-
-    // // SSE 스트림 구독
-    // _subscribeSse();
   }
-
-  // void _subscribeSse() {
-  //   _sseSubscription = SseService.to.visitorStream.listen((data) {
-  //     add(VisitorSseDataReceived(data));
-  //   });
-  // }
-
-  // void _onVisitorSseDataReceived(VisitorSseDataReceived event, Emitter<UserState> emit) {
-  //   if (event.data.type == 'count-update') {
-  //     // 카운트 업데이트
-  //     emit(state.copyWith(
-  //       userCount: UserCount(
-  //         enabledCnt: event.data.enabledCnt,
-  //         disabledCnt: event.data.disabledCnt,
-  //       ),
-  //     ));
-  //   } else if (event.data.type == 'list-refresh') {
-  //     // 리스트 새로고침 필요
-  //     add(Paginate(
-  //       page: state.page,
-  //       query: state.query,
-  //       filterType: state.filterType,
-  //       orderType: state.orderType,
-  //     ));
-  //   }
-  // }
 
   @override
   Future<void> close() {
-    // _sseSubscription?.cancel();
     return super.close();
   }
 

@@ -3,7 +3,8 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:io' show Platform;
 
-import 'package:TPASS/core/core.dart';
+import 'package:GateON/core/core.dart';
+import 'package:bloc/bloc.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -19,6 +20,8 @@ import 'package:responsive_framework/responsive_wrapper.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_strategy/url_strategy.dart';
 
+import 'core/config/style.dart';
+
 Future<void> main() async {
   logger.d('앱 진입점');
   AppConfig.init(
@@ -29,24 +32,30 @@ Future<void> main() async {
         return;
       }
 
+      Bloc.observer = AppBlocObserver();
       FlutterError.onError = FirebaseCrashlytics.instance.recordFlutterFatalError;
 
       PlatformDispatcher.instance.onError = (error, stack) {
         FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
         return true;
       };
+
+      await FirebaseCrashlytics.instance.setCustomKey('manufacturer', AppConfig.to.manufacturer ?? 'unknown');
+      await FirebaseCrashlytics.instance.setCustomKey('model', AppConfig.to.model ?? 'unknown');
+      await FirebaseCrashlytics.instance.setCustomKey('os_version', AppConfig.to.osVersion ?? 'unknown');
+      await FirebaseCrashlytics.instance.setCustomKey('app_version', AppConfig.to.appVersion ?? 'unknown');
       // 인터넷 연결 감지 서비스 초기화
       await ConnectivityService.to.init();
 
       if (Platform.isAndroid) {
-        // String? id = await FirebaseInstallations.id;
-        await AppConfig.to.storage.read(key: 'deviceId').then((value) async {
-          if (value == null) {
-            String id = await AndroidMethodChannel.to.getId();
+        final String? stored = await AppConfig.to.storage.read(key: 'deviceId');
+        if (stored == null) {
+          final String? id = await AndroidMethodChannel.to.getId();
+          if (id != null) {
             await AppConfig.to.storage.write(key: "deviceId", value: id);
+            logger.d("${id} 다바이스 id");
           }
-        });
-
+        }
       } else if (Platform.isIOS) {
         var iosInfo = await AppConfig.to.deviceInfo.iosInfo;
         await AppConfig.to.storage.read(key: 'deviceId').then((value) async {
@@ -74,6 +83,7 @@ class _AppState extends State<App> {
   StreamSubscription<bool>? _connectivitySubscription;
   bool _isDialogShowing = false;
   OverlayEntry? _noInternetOverlay;
+  Timer? _disconnectDebounce;
   late final AppLifecycleListener _lifecycleListener;
 
   @override
@@ -82,23 +92,15 @@ class _AppState extends State<App> {
     // 인터넷 연결 상태 스트림 구독
     _startConnectivityListener();
 
-    // 앱 시작 시 현재 연결 상태 확인 (스플래시 이후)
-    Future.delayed(const Duration(seconds: 3), () {
-      _checkCurrentConnection();
-    });
-
-    // 앱 라이프사이클 리스너 설정
     _lifecycleListener = AppLifecycleListener(
       onResume: () {
-        // 포그라운드로 돌아올 때 다시 구독 시작
         logger.d('앱 포그라운드 전환 - 인터넷 감지 재시작');
-        _startConnectivityListener();
-        // 포그라운드 전환 시 현재 연결 상태 즉시 확인
-        _checkCurrentConnection();
+        // iOS 네트워크 복구 대기 후 구독 재시작
+        Future.delayed(const Duration(seconds: 3), _startConnectivityListener);
       },
       onPause: () {
-        // 백그라운드로 갈 때 구독 취소
         logger.d('앱 백그라운드 전환 - 인터넷 감지 일시중지');
+        _disconnectDebounce?.cancel();
         _connectivitySubscription?.cancel();
         _connectivitySubscription = null;
       },
@@ -108,8 +110,15 @@ class _AppState extends State<App> {
   void _startConnectivityListener() {
     _connectivitySubscription?.cancel();
     _connectivitySubscription = ConnectivityService.to.statusStream.listen((isConnected) {
-      if (!isConnected && !_isDialogShowing) {
-        _showNoInternetDialog();
+      if (!isConnected) {
+        // 3초간 끊김이 유지될 때만 다이얼로그 표시 (일시적 끊김 무시)
+        _disconnectDebounce?.cancel();
+        _disconnectDebounce = Timer(const Duration(seconds: 3), () {
+          if (!_isDialogShowing) _showNoInternetDialog();
+        });
+      } else {
+        _disconnectDebounce?.cancel();
+        if (_isDialogShowing) _removeNoInternetOverlay();
       }
     });
   }
@@ -123,6 +132,7 @@ class _AppState extends State<App> {
 
   @override
   void dispose() {
+    _disconnectDebounce?.cancel();
     _connectivitySubscription?.cancel();
     _lifecycleListener.dispose();
     _removeNoInternetOverlay();
@@ -231,7 +241,7 @@ class _AppState extends State<App> {
         },
         child: MaterialApp.router(
             debugShowCheckedModeBanner: false,
-            title: 'TPASS',
+            title: 'GateON',
             darkTheme: darkTheme,
             theme: lightTheme,
             localizationsDelegates: const [
@@ -271,7 +281,7 @@ class DesktopWeb extends StatelessWidget {
       elevation: 10,
       child: MaterialApp.router(
         debugShowCheckedModeBanner: false,
-        title: 'TPASS',
+        title: 'GateON',
         darkTheme: lightTheme,
         theme: lightTheme,
         localizationsDelegates: const [
@@ -313,8 +323,8 @@ class AppConfig {
     encryptedSharedPreferences: true,
   ));
   static final DeviceInfoPlugin _deviceInfoPlugin = DeviceInfoPlugin();
-  static final FirebasePerformance performance = FirebasePerformance.instance;
-  static final FirebaseAnalytics analytics = FirebaseAnalytics.instance;
+  static FirebasePerformance? get performance => kIsWeb ? null : FirebasePerformance.instance;
+  static FirebaseAnalytics? get analytics => kIsWeb ? null : FirebaseAnalytics.instance;
   static late final SharedPreferences _shared;
   static late SecureModel _secureModel;
 
@@ -328,10 +338,46 @@ class AppConfig {
 
   DeviceInfoPlugin get deviceInfo => _deviceInfoPlugin;
 
+  static String? _deviceId;
   static String? _manufacturer;
   static String? _model;
   static String? _osVersion;
   static String? _appVersion;
+
+  static Future<String?> getDeviceId() async {
+    if (_deviceId != null) return _deviceId;
+    _deviceId = await _storage.read(key: 'deviceId');
+    if (_deviceId == null && Platform.isAndroid) {
+      final id = await AndroidMethodChannel.to.getId();
+      if (id != null) {
+        await _storage.write(key: 'deviceId', value: id);
+        _deviceId = id;
+      }
+    }
+    return _deviceId;
+  }
+
+  static String? _cachedTimeInstalled;
+
+  static Future<String> getTimeInstalled() async {
+    if (_cachedTimeInstalled != null) return _cachedTimeInstalled!;
+    String? value;
+    if (Platform.isIOS) {
+      value = _shared.getString('time_installed');
+    } else {
+      value = await _storage.read(key: 'time_installed');
+      if (value == null || value == 'null') {
+        value = _shared.getString('time_installed');
+      }
+    }
+    if (value == null || value == 'null' || int.tryParse(value) == null) {
+      value = '${DateTime.now().millisecondsSinceEpoch}';
+      await _storage.write(key: 'time_installed', value: value);
+      await _shared.setString('time_installed', value);
+    }
+    _cachedTimeInstalled = value;
+    return value;
+  }
 
   String? get manufacturer => _manufacturer;
   String? get model => _model;
@@ -347,20 +393,21 @@ class AppConfig {
       DeviceOrientation.portraitDown,
     ]);
     _shared = await SharedPreferences.getInstance();
+
     if (!kIsWeb) {
-      await Firebase.initializeApp(
-        options: DefaultFirebaseOptions.currentPlatform,
-      );
+      try {
+        await Firebase.initializeApp(
+          options: DefaultFirebaseOptions.currentPlatform,
+        );
+      } catch (e) {
+        if (e is! FirebaseException || e.code != 'duplicate-app') rethrow;
+      }
       if(Platform.isAndroid) {
         final info = await _deviceInfoPlugin.androidInfo;
         _manufacturer = info.manufacturer;
         _model = info.model;
         _osVersion = 'Android ${info.version.release}';
-        if ((await _storage.read(key: 'time_installed')) == null) {
-          _storage.write(key: 'time_installed', value: '${DateTime
-              .now()
-              .millisecondsSinceEpoch}');
-        }
+        await getTimeInstalled();
       }
 
       if(Platform.isIOS){
@@ -369,18 +416,11 @@ class AppConfig {
         _model = info.utsname.machine;
         _osVersion = '${info.systemName} ${info.systemVersion}';
 
-        if(_shared.getString('time_installed') == null){
-          _shared.setString( 'time_installed', '${DateTime
-              .now()
-              .millisecondsSinceEpoch}');
-        }
+        await getTimeInstalled();
       }
       final appInfo = await PackageInfo.fromPlatform();
       _appVersion = appInfo.version;
 
-    }
-    if ((await _storage.read(key: 'time_installed')) == null) {
-      _storage.write(key: 'time_installed', value: '${DateTime.now().millisecondsSinceEpoch}');
     }
     final secureString = _shared.getString('secureInfo');
     if (secureString == null) {

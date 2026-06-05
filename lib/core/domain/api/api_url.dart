@@ -2,7 +2,9 @@
 // const serverUrl = 'http://49.247.6.165:28008';
 const serverUrl =
     // 'http://192.168.0.162:28008';
-     'https://t-pass.co.kr:28008';
+    // 'http://192.168.0.10:28008';
+     'https://dev.gateon.co.kr:28008';
+// 'https://gateon.co.kr:28008';
 
 
 const profileUrl = '$serverUrl/url';

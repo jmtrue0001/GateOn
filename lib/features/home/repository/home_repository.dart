@@ -1,6 +1,6 @@
 import 'dart:io';
 
-import 'package:TPASS/main.dart';
+import 'package:GateON/main.dart';
 import 'package:geolocator/geolocator.dart';
 
 import '../../../core/core.dart';
@@ -11,7 +11,7 @@ class HomeRepository with CommonRepository {
   Future<CodeModel?> getProfileWithDevice(String tagId) async {
     try {
       logger.d("보낼때 tagid $tagId");
-      var result = await post(profileUrl, body: {'deviceId': await AppConfig.to.storage.read(key: "deviceId"), 'tagId': tagId, 'osType': Platform.isAndroid ? "SAMSUNG" : "APPLE", 'deviceModel' : AppConfig.to.model, 'osVersion' : AppConfig.to.osVersion, 'appVersion' : AppConfig.to.appVersion});
+      var result = await post(profileUrl, body: {'deviceId': await AppConfig.getDeviceId(), 'tagId': tagId, 'osType': Platform.isAndroid ? "SAMSUNG" : "APPLE", 'deviceModel' : AppConfig.to.model, 'osVersion' : AppConfig.to.osVersion, 'appVersion' : AppConfig.to.appVersion});
       switch (result.$1) {
         case StatusCode.success:
           return Model<CodeModel>.fromJson(result.$2).data;
@@ -31,7 +31,7 @@ class HomeRepository with CommonRepository {
   Future<CodeModel?> getProfileWithLocation(String code) async {
     try {
       var data = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
-      var result = await post(locationEnableUrl, body: {'code': code, 'latitude': data.latitude, 'longitude': data.longitude, 'deviceId': await AppConfig.to.storage.read(key: "deviceId"), 'osType': Platform.isAndroid ? "SAMSUNG" : "APPLE",'deviceModel' : AppConfig.to.model, 'osVersion' : AppConfig.to.osVersion, 'appVersion' : AppConfig.to.appVersion});
+      var result = await post(locationEnableUrl, body: {'code': code, 'latitude': data.latitude, 'longitude': data.longitude, 'deviceId': await AppConfig.getDeviceId(), 'osType': Platform.isAndroid ? "SAMSUNG" : "APPLE",'deviceModel' : AppConfig.to.model, 'osVersion' : AppConfig.to.osVersion, 'appVersion' : AppConfig.to.appVersion});
       switch (result.$1) {
         case StatusCode.success:
           return Model<CodeModel>.fromJson(result.$2).data;
@@ -50,7 +50,7 @@ class HomeRepository with CommonRepository {
 
   Future<CodeModel?> getProfileWithManual(String code, bool enabled) async {
     try {
-      var result = await post(profileUrl, body: {'code': code, "enableCode" : await AppConfig.to.storage.read(key: 'code'), "profileType": "Manual", 'deviceId': await AppConfig.to.storage.read(key: "deviceId"), 'osType': Platform.isAndroid ? "SAMSUNG" : "APPLE", 'manualEnabled' : enabled,'deviceModel' : AppConfig.to.model, 'osVersion' : AppConfig.to.osVersion, 'appVersion' : AppConfig.to.appVersion});
+      var result = await post(profileUrl, body: {'code': code, "enableCode" : await AppConfig.to.storage.read(key: 'code'), "profileType": "Manual", 'deviceId': await AppConfig.getDeviceId(), 'osType': Platform.isAndroid ? "SAMSUNG" : "APPLE", 'manualEnabled' : enabled,'deviceModel' : AppConfig.to.model, 'osVersion' : AppConfig.to.osVersion, 'appVersion' : AppConfig.to.appVersion});
       switch (result.$1) {
         case StatusCode.success:
           return Model<CodeModel>.fromJson(result.$2).data;
@@ -83,7 +83,7 @@ class HomeRepository with CommonRepository {
   }
 
   Future<bool> disableBan(String? code, String? banCode) async {
-    var result = await post(profileUrl, param: 'ban', body: {"deviceId": await AppConfig.to.storage.read(key: "deviceId"), 'deviceModel' : AppConfig.to.model, 'osVersion' : AppConfig.to.osVersion, 'appVersion' : AppConfig.to.appVersion, "banCode": banCode, "code": code, 'osType': Platform.isAndroid ? "SAMSUNG" : "APPLE"}, loginRequest: false);
+    var result = await post(profileUrl, param: 'ban', body: {"deviceId": await AppConfig.getDeviceId(), 'deviceModel' : AppConfig.to.model, 'osVersion' : AppConfig.to.osVersion, 'appVersion' : AppConfig.to.appVersion, "banCode": banCode, "code": code, 'osType': Platform.isAndroid ? "SAMSUNG" : "APPLE"}, loginRequest: false);
     switch (result.$1) {
       case StatusCode.success:
         return true;
@@ -98,7 +98,7 @@ class HomeRepository with CommonRepository {
   }
 
   Future<bool> registerAbnormal(String? code) async {
-    var result = await post(profileUrl, param: 'abnormal', body: {"deviceId": await AppConfig.to.storage.read(key: "deviceId"), 'deviceModel' : AppConfig.to.model, 'osVersion' : AppConfig.to.osVersion, 'appVersion' : AppConfig.to.appVersion, "code": code, 'osType': Platform.isAndroid ? "SAMSUNG" : "APPLE"}, loginRequest: false);
+    var result = await post(profileUrl, param: 'abnormal', body: {"deviceId": await AppConfig.getDeviceId(), 'deviceModel' : AppConfig.to.model, 'osVersion' : AppConfig.to.osVersion, 'appVersion' : AppConfig.to.appVersion, "code": code, 'osType': Platform.isAndroid ? "SAMSUNG" : "APPLE"}, loginRequest: false);
     switch (result.$1) {
       case StatusCode.success:
         return true;

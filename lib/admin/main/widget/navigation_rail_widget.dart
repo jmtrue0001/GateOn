@@ -1,6 +1,6 @@
-import 'package:TPASS/admin/main/bloc/main_bloc.dart';
-import 'package:TPASS/core/core.dart';
-import 'package:TPASS/main.dart';
+import 'package:GateON/admin/main/bloc/main_bloc.dart';
+import 'package:GateON/core/core.dart';
+import 'package:GateON/main.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 

@@ -1,8 +1,8 @@
-import 'package:TPASS/admin/main/bloc/main_bloc.dart';
-import 'package:TPASS/admin/settings/ui/setting_page.dart';
-import 'package:TPASS/admin/user/ui/user_page.dart';
-import 'package:TPASS/core/core.dart';
-import 'package:TPASS/main.dart';
+import 'package:GateON/admin/main/bloc/main_bloc.dart';
+import 'package:GateON/admin/settings/ui/setting_page.dart';
+import 'package:GateON/admin/user/ui/user_page.dart';
+import 'package:GateON/core/core.dart';
+import 'package:GateON/main.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -64,7 +64,7 @@ class _MainPageState extends State<MainPage> {
                                       child: Row(
                                         mainAxisSize: MainAxisSize.min,
                                         children: [
-                                          Text('TPASS 매니저', style: textTheme(context).krTitle2),
+                                          Text('GateON 매니저', style: textTheme(context).krTitle2),
                                           const Spacer(),
                                           Text('${state.enterpriseInfo?.name ?? ' '} (${state.enterpriseInfo?.loginId})', style: textTheme(context).krSubtitle1),
                                           const SizedBox(width: 24),

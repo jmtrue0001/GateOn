@@ -1,9 +1,9 @@
 import 'dart:math';
 
-import 'package:TPASS/admin/settings/widget/setting_dialog.dart';
-import 'package:TPASS/core/core.dart';
-import 'package:TPASS/core/widget/input_widget.dart';
-import 'package:TPASS/main.dart';
+import 'package:GateON/admin/settings/widget/setting_dialog.dart';
+import 'package:GateON/core/core.dart';
+import 'package:GateON/core/widget/input_widget.dart';
+import 'package:GateON/main.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:dotted_border/dotted_border.dart';
 import 'package:file_picker/file_picker.dart';

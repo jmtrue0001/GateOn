@@ -1,6 +1,6 @@
 import 'dart:typed_data';
 
-import 'package:TPASS/admin/enterprise/repository/enterprise_repository.dart';
+import 'package:GateON/admin/enterprise/repository/enterprise_repository.dart';
 import 'package:bloc/bloc.dart';
 import 'package:copy_with_extension/copy_with_extension.dart';
 

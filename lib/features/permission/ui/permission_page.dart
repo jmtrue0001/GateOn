@@ -41,7 +41,7 @@ class PermissionPage extends StatelessWidget {
                           Hero(
                             tag: 'logo',
                             child: SvgImage(
-                              "assets/images/logo_image_mini.svg",
+                              "assets/images/logo_image.svg",
                               height: 40,
                               color: colorTheme(context).logoColor,
                             ),
@@ -63,7 +63,7 @@ class PermissionPage extends StatelessWidget {
                           // Text('필수 접근 권한', style: textTheme(context).krSubtitle1.copyWith(color: colorTheme(context).titleText)),
                           // const SizedBox(height: 16),
                           Text(
-                            '필수 접근 권한을 승인하셔야 TPASS의 기능차단 서비스를 이용하실 수 있습니다.',
+                            '필수 접근 권한을 승인하셔야 GateON의 기능차단 서비스를 이용하실 수 있습니다.',
                             style: textTheme(context).krBody1,
                           ),
                         ],

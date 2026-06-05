@@ -40,7 +40,7 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
                     : Hero(
                         tag: 'logo',
                         child: SvgImage(
-                          'assets/images/logo_image_horizontal.svg',
+                          'assets/images/logo_image.svg',
                           height: 40,
                           color: iconColor ?? colorTheme(context).logoColor,
                         ),

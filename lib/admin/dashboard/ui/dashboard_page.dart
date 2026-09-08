@@ -4,9 +4,24 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../widget/admin_widget.dart';
 import '../bloc/dashboard_bloc.dart';
+import '../widget/abnormal_visitor_dialog.dart';
 
 class DashboardPage extends StatelessWidget {
   const DashboardPage({Key? key}) : super(key: key);
+
+  /// 비정상 방문객 카드 클릭(목록/삭제 다이얼로그) 사용 여부. 잠깐 끄려면 false, 다시 켜려면 true.
+  static const bool _abnormalCardEnabled = true;
+
+  /// 아이폰 비정상 방문객 카드 클릭 → 목록/다중삭제 다이얼로그. (context는 DashboardBloc 하위)
+  void _openAbnormalDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      barrierDismissible: false, // 다이얼로그 바깥 영역 클릭으로 닫히지 않게
+      builder: (_) => AbnormalVisitorDialog(
+        onChanged: () => context.read<DashboardBloc>().add(const Initial()), // 상태 변경 후 카운트 새로고침
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -158,18 +173,22 @@ class DashboardPage extends StatelessWidget {
                             child: BlocBuilder<DashboardBloc, DashboardState>(
                               buildWhen: (prev, curr) => prev.abnornalCount != curr.abnornalCount,
                               builder: (context, state) {
-                                return Row(
-                                  crossAxisAlignment: CrossAxisAlignment.center,
-                                  children: [
-                                    Text('아이폰 비정상 방문객 수', style: textTheme(context).krTitle1),
-                                    const Spacer(),
-                                    Text(
-                                      state.abnornalCount.toString(),
-                                      style: textTheme(context).krTitle1.copyWith(fontSize: 28),
-                                    ),
-                                    const SizedBox(width: 16),
-                                    Text('명', style: textTheme(context).krBody1)
-                                  ],
+                                return InkWell(
+                                  borderRadius: BorderRadius.circular(12),
+                                  onTap: _abnormalCardEnabled ? () => _openAbnormalDialog(context) : null,
+                                  child: Row(
+                                    crossAxisAlignment: CrossAxisAlignment.center,
+                                    children: [
+                                      Text('아이폰 비정상 방문객 수', style: textTheme(context).krTitle1),
+                                      const Spacer(),
+                                      Text(
+                                        state.abnornalCount.toString(),
+                                        style: textTheme(context).krTitle1.copyWith(fontSize: 28),
+                                      ),
+                                      const SizedBox(width: 16),
+                                      Text('명', style: textTheme(context).krBody1)
+                                    ],
+                                  ),
                                 );
                               },
                             ),
@@ -362,20 +381,24 @@ class DashboardPage extends StatelessWidget {
                           child: Padding(
                             padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 16),
                             child: BlocBuilder<DashboardBloc, DashboardState>(
-                              buildWhen: (prev, curr) => prev.disableTotalCount != curr.disableTotalCount,
+                              buildWhen: (prev, curr) => prev.abnornalCount != curr.abnornalCount,
                               builder: (context, state) {
-                                return Row(
-                                  crossAxisAlignment: CrossAxisAlignment.center,
-                                  children: [
-                                    Text('아이폰 비정상 방문객 수', style: textTheme(context).krTitle1),
-                                    const Spacer(),
-                                    Text(
-                                      state.abnornalCount.toString(),
-                                      style: textTheme(context).krTitle1.copyWith(fontSize: 28),
-                                    ),
-                                    const SizedBox(width: 16),
-                                    Text('명', style: textTheme(context).krBody1)
-                                  ],
+                                return InkWell(
+                                  borderRadius: BorderRadius.circular(12),
+                                  onTap: _abnormalCardEnabled ? () => _openAbnormalDialog(context) : null,
+                                  child: Row(
+                                    crossAxisAlignment: CrossAxisAlignment.center,
+                                    children: [
+                                      Text('아이폰 비정상 방문객 수', style: textTheme(context).krTitle1),
+                                      const Spacer(),
+                                      Text(
+                                        state.abnornalCount.toString(),
+                                        style: textTheme(context).krTitle1.copyWith(fontSize: 28),
+                                      ),
+                                      const SizedBox(width: 16),
+                                      Text('명', style: textTheme(context).krBody1)
+                                    ],
+                                  ),
                                 );
                               },
                             ),

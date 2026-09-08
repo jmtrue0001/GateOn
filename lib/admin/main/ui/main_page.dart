@@ -64,7 +64,7 @@ class _MainPageState extends State<MainPage> {
                                       child: Row(
                                         mainAxisSize: MainAxisSize.min,
                                         children: [
-                                          Text('GateON 매니저', style: textTheme(context).krTitle2),
+                                          Text('게이트온 매니저', style: textTheme(context).krTitle2),
                                           const Spacer(),
                                           Text('${state.enterpriseInfo?.name ?? ' '} (${state.enterpriseInfo?.loginId})', style: textTheme(context).krSubtitle1),
                                           const SizedBox(width: 24),

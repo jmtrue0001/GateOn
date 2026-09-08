@@ -129,3 +129,11 @@ class CheckOtherMdm extends HomeEvent {
 class DismissOtherMdmDialog extends HomeEvent {
   const DismissOtherMdmDialog();
 }
+
+/// 감지된 전체 BLE 목록을 다이얼로그로 표시하는 이벤트.
+/// reason: 표시 사유(미등록 태그 메시지 등). null이면 '못 찾음'으로 처리.
+class ShowBleList extends HomeEvent {
+  const ShowBleList({this.reason});
+
+  final String? reason;
+}

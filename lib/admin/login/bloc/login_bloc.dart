@@ -42,6 +42,8 @@ class LoginBloc extends Bloc<CommonEvent, LoginState> {
         );
         await AppConfig.to.shared.setString('secureInfo', jsonEncode(secureModel.toJson()));
         AppConfig.to.secureModel = secureModel;
+        // 현재 브라우저 세션을 "활성" 으로 표시(재접속 자동로그인 방지 기준점).
+        markBrowserSession();
 
         emit(state.copyWith(status: CommonStatus.success));
       }

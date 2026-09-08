@@ -53,6 +53,8 @@ class MainBloc extends Bloc<CommonEvent, MainState> {
       loginStatus: LoginStatus.logout,
     );
     await AppConfig.to.shared.setString('secureInfo', jsonEncode(secureModel.toJson()));
+    // 브라우저 세션 마커 제거(재접속 자동로그인 방지와 일관성 유지).
+    clearBrowserSession();
     emit(state.copyWith(status: CommonStatus.failure));
   }
 }

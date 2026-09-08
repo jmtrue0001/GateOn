@@ -6,6 +6,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'package:intl/intl.dart';
 
 
@@ -213,15 +214,13 @@ class BanPage extends StatelessWidget {
                         HomeRepository.to.disableBan(codeController.text, pwController.text).then((value) async {
                           if(value == true){
                             if(Platform.isAndroid){
-                              AndroidMethodChannel.to.enableCamera();
+                              await AndroidMethodChannel.to.enableCamera();
                             }
-                            HomeRepository.to.updateProfileInstalled(await AppConfig.getDeviceId() ?? "", false,"C_ENABLE").then((value){
-                              AppConfig.to.storage.write(key: 'profile_status', value: 'wait');
-                              AppConfig.to.storage.write(key: 'profileInstalled', value: 'false');
-                              context.go('/splash');
-                            });
-                            // AppConfig.to.storage.write(key: 'profile_status', value: 'wait');
-                            // context.go('/splash');
+                            await AppConfig.to.storage.write(key: 'profile_status', value: 'wait');
+                            await AppConfig.to.storage.write(key: 'profileInstalled', value: 'false');
+                            // ban 해제 후 홈으로 이동 시 진행 중이던 비콘 스캔을 확실히 중단
+                            await FlutterBluePlus.stopScan();
+                            context.go('/splash');
                           }
 
                         }).catchError((error) {

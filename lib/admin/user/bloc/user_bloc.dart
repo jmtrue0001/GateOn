@@ -36,11 +36,13 @@ class UserBloc extends Bloc<CommonEvent, UserState> with StreamTransform {
   }
 
   _onPaginate(Paginate event, Emitter<UserState> emit) async {
-    final users = await UserApi.to.getUsers(event.page ?? 1, event.query ?? '', event.filterType, event.orderType, event.count).catchError((e) {
-      emit(state.copyWith(errorMessage: e, status: CommonStatus.failure));
-      return e;
-    });
-    emit(state.copyWith(query: event.query, filterType: event.filterType, orderType: event.orderType, meta: users.data?.meta, status: CommonStatus.success, users: users.data?.items ?? []));
+    // 실패 시 예외를 그대로 상태에 넣던 로직을 제거. (errorMessage는 String, users는 목록이라 캐스트 크래시 방지)
+    try {
+      final users = await UserApi.to.getUsers(event.page ?? 1, event.query ?? '', event.filterType, event.orderType, event.count);
+      emit(state.copyWith(query: event.query, filterType: event.filterType, orderType: event.orderType, meta: users.data?.meta, status: CommonStatus.success, users: users.data?.items ?? []));
+    } catch (e) {
+      emit(state.copyWith(errorMessage: e.toString(), status: CommonStatus.failure));
+    }
   }
 
   _onDetail(Detail event, Emitter<UserState> emit) async {
@@ -64,9 +66,11 @@ class UserBloc extends Bloc<CommonEvent, UserState> with StreamTransform {
     logger.d("현재페이지 ${value.data?.meta?.currentPage}");
   }
 
-  _onReInitial(ReInitial event, Emitter<UserState> emit) {
-    emit(state.copyWith(detail: false,filterType: FilterType.disabledAt));
-    add(Initial());
+  _onReInitial(ReInitial event, Emitter<UserState> emit) async {
+    final page = event.page ?? state.meta?.currentPage ?? 1;
+    emit(state.copyWith(detail: false, filterType: FilterType.disabledAt));
+    add(Paginate(page: page, filterType: FilterType.disabledAt, orderType: OrderType.desc));
+    await UserApi.to.statusVisitors().then((value) => emit(state.copyWith(userCount: value.data)));
   }
 
   _onExcelDownload(ExcelDownload event, Emitter<UserState> emit){

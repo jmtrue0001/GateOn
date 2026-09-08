@@ -244,6 +244,8 @@ class _AppState extends State<App> {
             title: 'GateON',
             darkTheme: darkTheme,
             theme: lightTheme,
+            // OS 다크 모드와 무관하게 항상 라이트 테마로 고정
+            themeMode: ThemeMode.light,
             localizationsDelegates: const [
               GlobalMaterialLocalizations.delegate,
               GlobalCupertinoLocalizations.delegate,
@@ -275,6 +277,16 @@ class DesktopWeb extends StatelessWidget {
 
   final _router = AppRouter();
 
+  /// 무작업 자동 로그아웃 처리: 로그인 정보 삭제 + 브라우저 세션 마커 제거 + 로그인 페이지 이동.
+  Future<void> _idleLogout() async {
+    final secureModel = SecureModel(tokenData: TokenData(), loginStatus: LoginStatus.logout);
+    await AppConfig.to.shared.setString('secureInfo', jsonEncode(secureModel.toJson()));
+    AppConfig.to.secureModel = secureModel;
+    clearBrowserSession();
+    logger.d('무작업 ${SessionConfig.autoLogoutDuration.inMinutes}분 경과 - 자동 로그아웃');
+    _router.setDesktopRouter.go('/login');
+  }
+
   @override
   Widget build(BuildContext context) {
     return Material(
@@ -294,18 +306,23 @@ class DesktopWeb extends StatelessWidget {
         locale: const Locale('ko', 'KR'),
         themeMode: ThemeMode.system,
         routerConfig: _router.setDesktopRouter,
-        builder: (context, child) => ResponsiveWrapper.builder(child,
-            defaultScale: true,
-            minWidth: 0,
-            breakpoints: [
-              const ResponsiveBreakpoint.resize(1200, name: DESKTOP, scaleFactor: 1.0),
-              const ResponsiveBreakpoint.autoScale(600, name: TABLET, scaleFactor: 0.5),
-              const ResponsiveBreakpoint.autoScale(480, name: MOBILE, scaleFactor: 0.4),
-              const ResponsiveBreakpoint.autoScale(428, name: MOBILE, scaleFactor: 0.35),
-              const ResponsiveBreakpoint.autoScaleDown(240, name: MOBILE, scaleFactor: 0.2),
-              const ResponsiveBreakpoint.autoScaleDown(10, name: MOBILE, scaleFactor: 0.1),
-            ],
-            background: Container(color: const Color(0xFFF5F5F5))),
+        builder: (context, child) => IdleTimeoutWrapper(
+          timeout: SessionConfig.autoLogoutDuration,
+          checkInterval: SessionConfig.activityCheckInterval,
+          onTimeout: _idleLogout,
+          child: ResponsiveWrapper.builder(child,
+              defaultScale: true,
+              minWidth: 0,
+              breakpoints: [
+                const ResponsiveBreakpoint.resize(1200, name: DESKTOP, scaleFactor: 1.0),
+                const ResponsiveBreakpoint.autoScale(600, name: TABLET, scaleFactor: 0.5),
+                const ResponsiveBreakpoint.autoScale(480, name: MOBILE, scaleFactor: 0.4),
+                const ResponsiveBreakpoint.autoScale(428, name: MOBILE, scaleFactor: 0.35),
+                const ResponsiveBreakpoint.autoScaleDown(240, name: MOBILE, scaleFactor: 0.2),
+                const ResponsiveBreakpoint.autoScaleDown(10, name: MOBILE, scaleFactor: 0.1),
+              ],
+              background: Container(color: const Color(0xFFF5F5F5))),
+        ),
       ),
     );
   }
@@ -422,11 +439,24 @@ class AppConfig {
       _appVersion = appInfo.version;
 
     }
+    // 외부 config.json(웹) 에서 세션/자동로그아웃 정책 로드. 실패 시 기본값 유지.
+    await SessionConfig.load();
+
     final secureString = _shared.getString('secureInfo');
     if (secureString == null) {
       _secureModel = SecureModel(tokenData: TokenData(), loginStatus: LoginStatus.logout, role: Role.ROLE_ENTERPRISE);
     } else {
       final secureData = SecureModel.fromJson(jsonDecode(secureString));
+      // [웹 재접속 자동로그인 방지]
+      // 로그인 정보는 남아있지만(localStorage) 브라우저 세션 마커가 없으면(sessionStorage)
+      // = 브라우저/탭을 닫았다가 다시 접속한 상황 → 자동로그인 방지를 위해 로그아웃 처리.
+      // (새로고침 F5 는 같은 세션이라 마커가 유지되므로 로그인 유지됨)
+      if (kIsWeb && SessionConfig.requireLoginOnReopen && secureData.loginStatus == LoginStatus.login && !hasBrowserSession()) {
+        secureData.loginStatus = LoginStatus.logout;
+        secureData.tokenData = TokenData();
+        await _shared.setString('secureInfo', jsonEncode(secureData.toJson()));
+        logger.d('웹 재접속 감지 - 자동로그인 방지(로그아웃 처리)');
+      }
       _secureModel = secureData;
     }
     PackageInfo packageInfo = await PackageInfo.fromPlatform();

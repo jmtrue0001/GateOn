@@ -45,6 +45,12 @@ class AppRouter {
         },
       ),
       GoRoute(
+        path: '/unsupported',
+        builder: (BuildContext context, GoRouterState state) {
+          return const UnsupportedDevicePage();
+        },
+      ),
+      GoRoute(
         path: '/guide',
         builder: (BuildContext context, GoRouterState state) {
           return const /**/GuidePage();

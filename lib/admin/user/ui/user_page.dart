@@ -2,7 +2,7 @@ import 'package:GateON/admin/widget/list_data_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../../core/core.dart';
+import '../../../core/core.dart' hide Initial;
 import '../../widget/admin_widget.dart';
 import '../../widget/common_table_data.dart';
 import '../bloc/user_bloc.dart';
@@ -13,7 +13,7 @@ class UserPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (context) => UserBloc()..add(const Initial()),
+      create: (context) => UserBloc()..add(Initial()),
       child: LayoutBuilder(builder: (context, constraints) {
         final bool wideView = constraints.maxWidth > 1400;
         final double width = constraints.maxWidth - 64;

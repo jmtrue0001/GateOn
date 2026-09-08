@@ -224,6 +224,28 @@ class _AddSubAdminDialogState extends State<AddSubAdminDialog> {
                               });
                           return;
                         }
+                        // 비밀번호 복잡도 검증 (8자 이상, 대/소문자·특수문자 각 1자 이상)
+                        final pwPolicyError = validatePasswordPolicy(pwController.text);
+                        if (pwController.text.isNotEmpty && pwPolicyError != null) {
+                          showAdaptiveDialog(
+                              context: context,
+                              builder: (ctx) {
+                                return AlertDialog.adaptive(
+                                  title: const Text('알림'),
+                                  content: Text(pwPolicyError, style: textTheme(context).krBody1),
+                                  actions: <Widget>[
+                                    adaptiveAction(
+                                      context: context,
+                                      onPressed: () {
+                                        Navigator.pop(context);
+                                      },
+                                      child: const Text('확인'),
+                                    ),
+                                  ],
+                                );
+                              });
+                          return;
+                        }
                         if (dataFilled) {
                           widget.onAdd?.call({
                             "username": idController.text,

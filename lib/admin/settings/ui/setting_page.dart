@@ -320,6 +320,27 @@ class SettingPage extends StatelessWidget {
                                                               await FilePicker.platform.pickFiles(type: FileType.custom, withReadStream: true, allowedExtensions: ['jpg', 'png', 'jpeg']).then((value) async {
                                                                 if (value != null) {
                                                                   final file = value.files.first;
+                                                                  // 로고 이미지 용량 제한 (10MB). 값 변경 시 이 상수만 수정.
+                                                                  const int maxLogoBytes = 10 * 1024 * 1024;
+                                                                  if (file.size > maxLogoBytes) {
+                                                                    if (context.mounted) {
+                                                                      showAdaptiveDialog(
+                                                                        context: context,
+                                                                        builder: (context) => AlertDialog.adaptive(
+                                                                          title: const Text('알림'),
+                                                                          content: const Text('로고 이미지는 10MB 이하만 업로드할 수 있습니다.'),
+                                                                          actions: [
+                                                                            adaptiveAction(
+                                                                              context: context,
+                                                                              onPressed: () => Navigator.pop(context),
+                                                                              child: const Text('확인'),
+                                                                            ),
+                                                                          ],
+                                                                        ),
+                                                                      );
+                                                                    }
+                                                                    return;
+                                                                  }
                                                                   await file.readStream?.first.then(
                                                                         (fileBytes) => context.read<SettingBloc>().add(PickFile(fileBytes as Uint8List, file.extension)),
                                                                   );
@@ -345,7 +366,7 @@ class SettingPage extends StatelessWidget {
                                                           ),
                                                         ),
                                                         const SizedBox(height: 16),
-                                                        Text('이미지는 jpg,png 파일만 업로드가 가능합니다.', style: textTheme(context).krSubtext2.copyWith(color: const Color(0xffAAB0B6))),
+                                                        Text('이미지는 jpg,png 파일만 업로드가 가능합니다. (최대 10MB)', style: textTheme(context).krSubtext2.copyWith(color: const Color(0xffAAB0B6))),
                                                       ],
                                                     ),
                                                 ],

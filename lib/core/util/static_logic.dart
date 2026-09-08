@@ -9,6 +9,25 @@ String dateParser(String? date) {
   return DateFormat('yyyy년 MM월 dd일').format(DateTime.parse(date));
 }
 
+/// 비밀번호 복잡도 검증.
+/// 규칙: 8자 이상 + 대문자 1자 이상 + 소문자 1자 이상 + 특수문자 1자 이상.
+/// 통과하면 null, 실패하면 안내 메시지를 반환한다.
+String? validatePasswordPolicy(String password) {
+  if (password.length < 8) {
+    return '비밀번호는 8자 이상이어야 합니다.';
+  }
+  if (!RegExp(r'[A-Z]').hasMatch(password)) {
+    return '대문자를 1자 이상 포함해주세요.';
+  }
+  if (!RegExp(r'[a-z]').hasMatch(password)) {
+    return '소문자를 1자 이상 포함해주세요.';
+  }
+  if (!RegExp(r'''[!@#$%^&*(),.?":{}|<>_\-\[\]/~`+=;'\\]''').hasMatch(password)) {
+    return '특수문자를 1자 이상 포함해주세요.';
+  }
+  return null;
+}
+
 String dateDataParser({String? dateString, DateTime? date, String format = 'yyyy-MM-dd'}) {
   if (date == null) return "-";
   if (dateString != null) {

@@ -8,10 +8,10 @@ import '../../../core/core.dart';
 class HomeRepository with CommonRepository {
   static HomeRepository get to => HomeRepository();
 
-  Future<CodeModel?> getProfileWithDevice(String tagId) async {
+  Future<CodeModel?> getProfileWithDevice(String tagId, {String? action}) async {
     try {
       logger.d("보낼때 tagid $tagId");
-      var result = await post(profileUrl, body: {'deviceId': await AppConfig.getDeviceId(), 'tagId': tagId, 'osType': Platform.isAndroid ? "SAMSUNG" : "APPLE", 'deviceModel' : AppConfig.to.model, 'osVersion' : AppConfig.to.osVersion, 'appVersion' : AppConfig.to.appVersion});
+      var result = await post(profileUrl, body: {'deviceId': await AppConfig.getDeviceId(),  'tagId': tagId, if (action != null) 'action': action, 'osType': Platform.isAndroid ? "SAMSUNG" : "APPLE", 'deviceModel' : AppConfig.to.model, 'osVersion' : AppConfig.to.osVersion, 'appVersion' : AppConfig.to.appVersion});
       switch (result.$1) {
         case StatusCode.success:
           return Model<CodeModel>.fromJson(result.$2).data;
@@ -113,10 +113,14 @@ class HomeRepository with CommonRepository {
   }
 
   Future<void> updateProfileInstalled(String uuid, bool profileInstalled, String type) async {
+    final code = await AppConfig.to.storage.read(key: 'last_action_code');
     var result = await post(profileUrl, param: 'profileinstalled', body: {
       "deviceId": uuid,
       "profileInstalled" :  profileInstalled,
-      "type" : type
+      "type" : type,
+      "enterpriseCode": code,
+      // iOS만 프로파일 설치/삭제를 기록, Android는 카메라 직접 제어라 프로파일 기록 불필요
+      "profileType": Platform.isIOS ? "INSTALL" : null,
     }, loginRequest: false);
     switch (result.$1) {
       case StatusCode.success:

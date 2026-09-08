@@ -23,9 +23,15 @@ class SplashBloc extends Bloc<CommonEvent, SplashState> {
     try{
       final id = packageInfo.packageName;
 
-      final parameters = {"bundleId": "$id","country" : "KR"};
+      // iTunes lookup API 는 CDN 캐시가 강해 새 버전 출시 후에도 낡은 버전을 내려줄 수 있음.
+      // 매번 바뀌는 파라미터(t)를 붙여 캐시를 우회하고 항상 최신 스토어 버전을 받는다.
+      final parameters = {
+        "bundleId": "$id",
+        "country": "KR",
+        "t": "${DateTime.now().millisecondsSinceEpoch}",
+      };
       var uri = Uri.https("itunes.apple.com", "/lookup", parameters);
-      final response = await http.get(uri);
+      final response = await http.get(uri, headers: const {"Cache-Control": "no-cache"});
       // logger.d(response.statusCode);
       // logger.d(uri);
       if (response.statusCode != 200) {
@@ -83,6 +89,16 @@ class SplashBloc extends Bloc<CommonEvent, SplashState> {
     emit(state.copyWith(status: CommonStatus.loading));
 
     try {
+      // 안드로이드는 삼성(Knox) 기기에서만 동작한다. 비삼성이면 전용 미지원 화면으로 보내고 진입 차단.
+      if (Platform.isAndroid) {
+        final manufacturer = AppConfig.to.manufacturer?.trim().toLowerCase();
+        if (manufacturer != null && manufacturer != 'samsung') {
+          logger.d('비삼성 기기 감지 ($manufacturer) - 미지원 화면 이동');
+          emit(state.copyWith(status: CommonStatus.success, route: '/unsupported'));
+          return;
+        }
+      }
+
       PackageInfo packageInfo = await PackageInfo.fromPlatform();
 
       /* ***************************************** */
@@ -93,6 +109,7 @@ class SplashBloc extends Bloc<CommonEvent, SplashState> {
 
       logger.d('my device version : ${packageInfo.version}');
       logger.d('current store version: ${storeVersion.toString()}');
+      logger.d("app이름 ${packageInfo.appName}");
 
       if (storeVersion != null && storeVersion.toString().isNotEmpty && storeVersion.toString().compareTo("") != 0 && Version.parse(storeVersion) > Version.parse(packageInfo.version) ) {
         emit(state.copyWith(status: CommonStatus.failure,errorMessage: getStoreUrlValue(packageInfo.packageName, packageInfo.appName) ));

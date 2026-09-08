@@ -34,6 +34,43 @@ class NotFoundPage extends StatelessWidget {
   }
 }
 
+/// 삼성(Knox) 미지원 기기 안내 화면.
+/// 이 앱의 카메라 차단은 삼성 Knox에 의존하므로 비삼성 안드로이드 기기에서는 사용할 수 없다.
+class UnsupportedDevicePage extends StatelessWidget {
+  const UnsupportedDevicePage({Key? key}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: SafeArea(
+        child: Center(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 32),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.phonelink_erase, size: 72, color: Colors.redAccent),
+                const SizedBox(height: 24),
+                Text(
+                  '이 기기에서는 사용할 수 없습니다.',
+                  style: textTheme(context).krTitle2,
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  '본 앱의 카메라 차단 기능은 삼성(Samsung) 기기 전용입니다.\n삼성 스마트폰에서 이용해 주세요.',
+                  style: textTheme(context).krSubtitle1R,
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class ErrorPage extends StatelessWidget {
   const ErrorPage({Key? key, required this.errorCode}) : super(key: key);
 

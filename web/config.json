@@ -1,0 +1,5 @@
+{
+  "autoLogoutMinutes": 0,
+  "activityCheckSeconds": 10,
+  "requireLoginOnReopen": true
+}

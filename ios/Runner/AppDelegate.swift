@@ -15,8 +15,8 @@ import Foundation
     GeneratedPluginRegistrant.register(with: self)
 
 
-    // 캡쳐 방지 해제 코드
-//     self.window?.makeSecure()
+    // 캡쳐 방지 코드
+    self.window?.makeSecure()
 
     // ✅ Method Channel 설정
     let controller: FlutterViewController = window?.rootViewController as! FlutterViewController

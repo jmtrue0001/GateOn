@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:GateON/core/widget/qr_widget.dart';
@@ -21,8 +22,75 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../../core/core.dart';
 import '../bloc/home_bloc.dart';
 
-class HomePage extends StatelessWidget {
+class HomePage extends StatefulWidget {
   const HomePage({Key? key}) : super(key: key);
+
+  @override
+  State<HomePage> createState() => _HomePageState();
+}
+
+class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
+  /// 비콘 버튼을 눌러 스캔 중인지. (스캔 중 "비콘 찾는 중..." 로딩 표시용)
+  bool _beaconScanning = false;
+  bool _scanDialogShowing = false;
+
+  /// BLE 목록 다이얼로그 스크롤 컨트롤러(리스트가 길 때 스크롤바 표시용).
+  final ScrollController _bleScrollController = ScrollController();
+
+  /// 비콘 스캔 중 로딩 다이얼로그 표시. (barrier로 스캔 중 다른 조작·연타도 자연히 차단)
+  void _showScanningDialog(BuildContext context) {
+    if (_scanDialogShowing) return;
+    _scanDialogShowing = true;
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const Dialog(
+        backgroundColor: Colors.white,
+        child: Padding(
+          padding: EdgeInsets.symmetric(vertical: 28, horizontal: 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              CircularProgressIndicator(),
+              SizedBox(height: 16),
+              Text('비콘을 찾는 중...'),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _dismissScanningDialog(BuildContext context) {
+    _beaconScanning = false;
+    if (!_scanDialogShowing) return;
+    _scanDialogShowing = false;
+    Navigator.of(context, rootNavigator: true).pop();
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _bleScrollController.dispose();
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    // 인앱 사파리 뷰에서 프로파일 설치 후 앱으로 복귀(resumed)하면
+    // 남아있는 인앱 브라우저를 닫는다.
+    if (state == AppLifecycleState.resumed) {
+      closeInAppWebView();
+    }
+  }
+
   void showAboutDeviceDialog(BuildContext context) async {
     final deviceInfoPlugin = DeviceInfoPlugin();
     final appInfo = await PackageInfo.fromPlatform();
@@ -80,14 +148,15 @@ class HomePage extends StatelessWidget {
           previous.status != current.status ||
           (!previous.otherMdmDialogShown && current.otherMdmDialogShown),
         listener: (context, state) async {
+          // 비콘 스캔 로딩 다이얼로그: loading이 끝나면(다른 상태로 전이) 닫는다.
+          if (state.status != CommonStatus.loading) {
+            _dismissScanningDialog(context);
+          }
           switch (state.status) {
             case CommonStatus.initial:
-              final code = await AppConfig.to.storage.read(key: 'code');
-              if (code != null && code.isNotEmpty) {
-                context.read<HomeBloc>().add(GetEnterPrise(code: code));
-              }
               break;
             case CommonStatus.loading:
+              if (_beaconScanning) _showScanningDialog(context);
               break;
             case CommonStatus.dialog:
               imageDialog(context, 'assets/images/nfc_guide.png', (){
@@ -99,6 +168,9 @@ class HomePage extends StatelessWidget {
             case CommonStatus.error:
               controller.clear();
               animatedDialog(context, state.errorMessage ?? '카메라 권한 제어 중 오류가 발생하였습니다.\n관리자에게 문의해주세요.', () {});
+              break;
+            case CommonStatus.bleList:
+              _showBleListDialog(context, state.bleDevices, state.errorMessage);
               break;
             case CommonStatus.failure:
               AppConfig.to.storage.write(key: 'profile_status', value: 'ban');
@@ -127,6 +199,7 @@ class HomePage extends StatelessWidget {
                     showDialog(context: context, builder: (BuildContext ctx){
                       return QrWidget(bloc:context.read<HomeBloc>());
                     });
+                    
                   case InteractionType.nfc:
                     context.read<HomeBloc>().add(DisableDevice(interaction));
                     if (Platform.isAndroid && state.status != CommonStatus.dialog) {
@@ -134,6 +207,7 @@ class HomePage extends StatelessWidget {
                     }
                     break;
                   case InteractionType.beacon:
+                    _beaconScanning = true;
                     context.read<HomeBloc>().add(DisableDevice(interaction));
                     break;
                   case InteractionType.manual:
@@ -177,7 +251,7 @@ class HomePage extends StatelessWidget {
                 await _audioPlayer.play(AssetSource('sounds/install_profile.mp3'));
 
                 logger.d(state.profileUrl);
-                await _launchUrl(state.profileUrl);
+                await _launchUrl(context, state.profileUrl);
                 // await HomeRepository.to.downloadFile(state.profileUrl);
                 // await _launchUrl('$serverUrl/url/files/${state.profileUrl}');
               }
@@ -186,6 +260,7 @@ class HomePage extends StatelessWidget {
         },
         builder: (context, state) {
           return Scaffold(
+            // bottomSheet: const _DebugOverlay(), // [임시 디버그] 필요 시 주석 해제
             resizeToAvoidBottomInset: false,
             extendBody: true,
             extendBodyBehindAppBar: true,
@@ -426,21 +501,23 @@ class HomePage extends StatelessWidget {
                                             //     ],
                                             //   ),
                                             // ),
-                                            Container(
-                                              width: itemWidth,
-                                              height: itemHeight,
-                                              decoration: BoxDecoration(
-                                                  borderRadius: BorderRadius.circular(5),
-                                                  border: Border.all(color: Colors.white, width: 1)
-                                              ),
-                                              child: Column(
-                                                mainAxisAlignment: MainAxisAlignment.center,
-                                                children: [
-                                                  Icon(Icons.wifi_tethering_off, size: iconSize, color: Colors.white),
-                                                  Text('테더링', style: TextStyle(fontSize: fontSize, color: Colors.white))
-                                                ],
-                                              ),
-                                            ),
+                                            // 테더링 항목 임시 비활성화 (나중에 재활성화 가능) — 주석 해제 시 복구
+                                            // Container(
+                                            //   width: itemWidth,
+                                            //   height: itemHeight,
+                                            //   decoration: BoxDecoration(
+                                            //       borderRadius: BorderRadius.circular(5),
+                                            //       border: Border.all(color: Colors.white, width: 1)
+                                            //   ),
+                                            //   child: Column(
+                                            //     mainAxisAlignment: MainAxisAlignment.center,
+                                            //     children: [
+                                            //       Icon(Icons.wifi_tethering_off, size: iconSize, color: Colors.white),
+                                            //       Text('테더링', style: TextStyle(fontSize: fontSize, color: Colors.white))
+                                            //     ],
+                                            //   ),
+                                            // ),
+                                            // USB 항목 임시 비활성화 (나중에 재활성화 가능) — 주석 해제 시 복구
                                             Container(
                                               width: itemWidth,
                                               height: itemHeight,
@@ -517,21 +594,23 @@ class HomePage extends StatelessWidget {
                                             //     ],
                                             //   ),
                                             // ),
-                                            Container(
-                                              width: itemWidth,
-                                              height: itemHeight,
-                                              decoration: BoxDecoration(
-                                                  borderRadius: BorderRadius.circular(5),
-                                                  border: Border.all(color: Color(0xff2F80ED), width: 1)
-                                              ),
-                                              child: Column(
-                                                mainAxisAlignment: MainAxisAlignment.center,
-                                                children: [
-                                                  Icon(Icons.wifi_tethering_off, size: iconSize,),
-                                                  Text('테더링', style: TextStyle(fontSize: fontSize))
-                                                ],
-                                              ),
-                                            ),
+                                            // 테더링 항목 임시 비활성화 (나중에 재활성화 가능) — 주석 해제 시 복구
+                                            // Container(
+                                            //   width: itemWidth,
+                                            //   height: itemHeight,
+                                            //   decoration: BoxDecoration(
+                                            //       borderRadius: BorderRadius.circular(5),
+                                            //       border: Border.all(color: Color(0xff2F80ED), width: 1)
+                                            //   ),
+                                            //   child: Column(
+                                            //     mainAxisAlignment: MainAxisAlignment.center,
+                                            //     children: [
+                                            //       Icon(Icons.wifi_tethering_off, size: iconSize, color: Colors.black),
+                                            //       Text('테더링', style: TextStyle(fontSize: fontSize, color: Colors.black))
+                                            //     ],
+                                            //   ),
+                                            // ),
+                                            // USB 항목 임시 비활성화 (나중에 재활성화 가능) — 주석 해제 시 복구
                                             Container(
                                               width: itemWidth,
                                               height: itemHeight,
@@ -612,7 +691,7 @@ class HomePage extends StatelessWidget {
                                             text: '3단계 : ',
                                             children: [
                                               TextSpan(
-                                                text: '[GateON 프로필(차단)]',
+                                                text: '[게이트온 프로필(차단)]',
                                                 style: textTheme(context).krBody2.copyWith(color: const Color(0xff7B878D)),
                                               ),
                                               const TextSpan(text: '다운로드 및 설치')
@@ -687,7 +766,7 @@ class HomePage extends StatelessWidget {
                                             text: '3단계 : ',
                                             children: [
                                               TextSpan(
-                                                text: '[GateON 프로필(차단)]',
+                                                text: '[게이트온 프로필(차단)]',
                                                 style: textTheme(context).krBody2.copyWith(color: const Color(0xff7B878D)),
                                               ),
                                               const TextSpan(text: '다운로드 및 설치')
@@ -763,7 +842,7 @@ class HomePage extends StatelessWidget {
                                             text: '3단계 : ',
                                             children: [
                                               TextSpan(
-                                                text: '[GateON 프로필(차단)]',
+                                                text: '[게이트온 프로필(차단)]',
                                                 style: textTheme(context).krBody2.copyWith(color: const Color(0xff7B878D)),
                                               ),
                                               const TextSpan(text: '다운로드 및 설치')
@@ -839,7 +918,7 @@ class HomePage extends StatelessWidget {
                                             text: '3단계 : ',
                                             children: [
                                               TextSpan(
-                                                text: '[GateON 프로필(차단)]',
+                                                text: '[게이트온 프로필(차단)]',
                                                 style: textTheme(context).krBody2.copyWith(color: const Color(0xff7B878D)),
                                               ),
                                               const TextSpan(text: '다운로드 및 설치')
@@ -911,6 +990,7 @@ class HomePage extends StatelessWidget {
                                 }
                                 break;
                               case InteractionType.beacon:
+                                _beaconScanning = true;
                                 context.read<HomeBloc>().add(EnableDevice(interaction));
                                 break;
                               case InteractionType.manual:
@@ -963,16 +1043,140 @@ class HomePage extends StatelessWidget {
     );
   }
 
-  Future<void> _launchUrl(String url) async {
-    if (!await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication)) {
-      throw Exception('Could not launch $url');
+  Future<void> _launchUrl(BuildContext context, String url) async {
+    bool launched = false;
+    try {
+      // 인앱 사파리 뷰(SFSafariViewController)로 실행.
+      // 기본 브라우저(크롬 등) 설정이나 Safari 앱 제한과 무관하게 Safari 엔진으로 열려
+      // 프로파일 다운로드가 정상 동작한다. (externalApplication은 기본 브라우저를 따라가 실패)
+      // 앱 복귀 시 남은 인앱 브라우저는 didChangeAppLifecycleState(resumed)에서 닫는다.
+      launched = await launchUrl(Uri.parse(url), mode: LaunchMode.inAppWebView);
+    } catch (e) {
+      logger.e('launchUrl 실패: $url - $e');
+      launched = false;
     }
+    if (!launched && context.mounted) {
+      _showLaunchFailDialog(context);
+    }
+  }
+
+  /// 등록 비콘을 못 찾았을 때, 감지된 전체 BLE 목록을 스크롤 다이얼로그로 표시
+  void _showBleListDialog(BuildContext context, List<String> devices, String? reason) {
+    final hasReason = reason != null && reason.trim().isNotEmpty;
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: Colors.white,
+        titlePadding: const EdgeInsets.fromLTRB(20, 20, 20, 8),
+        contentPadding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
+        title: Text(
+          hasReason ? reason : '감지된 BLE 목록',
+          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+        ),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: devices.isEmpty
+              ? const Text('감지된 BLE 기기가 없습니다.', style: TextStyle(fontSize: 13))
+              : Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('감지된 BLE 기기 ${devices.length}개',
+                        style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+                    const SizedBox(height: 6),
+                    // 리스트 영역 높이를 화면의 40%로 "고정"한다. 항목 수와 무관하게 항상 같은 높이,
+                    // 항목이 많으면 이 안에서 스크롤한다. (maxHeight가 아니라 고정 height라 세로가 안 늘어남)
+                    SizedBox(
+                      height: MediaQuery.of(ctx).size.height * 0.35,
+                      child: Scrollbar(
+                        controller: _bleScrollController,
+                        thumbVisibility: true,
+                        child: ListView.separated(
+                          controller: _bleScrollController,
+                          // 스크롤바가 우측 내용(dBm 등)을 가리지 않도록 오른쪽 여백 확보
+                          padding: const EdgeInsets.only(right: 12),
+                          itemCount: devices.length,
+                          separatorBuilder: (_, __) => Divider(height: 1, color: Colors.grey.shade200),
+                          itemBuilder: (_, i) => _bleListRow(devices[i]),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.of(ctx).pop(), child: const Text('확인')),
+        ],
+      ),
+    );
+  }
+
+  /// BLE 목록 한 줄. "기기ID | 신호세기 | 이름" 문자열을 파싱해
+  /// 이름(강조) / 기기ID(작게) 2줄 + 신호세기(우측·강도별 색상)로 정렬 표시한다.
+  Widget _bleListRow(String raw) {
+    final parts = raw.split('|').map((e) => e.trim()).toList();
+    final id = parts.isNotEmpty ? parts[0] : '';
+    final rssi = parts.length > 1 ? parts[1] : '';
+    final name = parts.length > 2 ? parts.sublist(2).join('|').trim() : '';
+
+    final rssiVal = int.tryParse(rssi.replaceAll(RegExp(r'[^-0-9]'), ''));
+    final rssiColor = rssiVal == null
+        ? Colors.grey
+        : (rssiVal >= -60 ? Colors.green.shade600 : (rssiVal >= -80 ? Colors.orange.shade700 : Colors.red.shade400));
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(name.isEmpty ? '(이름 없음)' : name,
+                    style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                    maxLines: 1, overflow: TextOverflow.ellipsis),
+                const SizedBox(height: 2),
+                // tagId는 진단용이라 잘리지 않게 전체 표시(길면 줄바꿈)
+                Text('tag: $id',
+                    style: TextStyle(fontSize: 11, color: Colors.grey.shade500)),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          Text(rssi, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: rssiColor)),
+        ],
+      ),
+    );
+  }
+
+  void _showLaunchFailDialog(BuildContext context) {
+    showAdaptiveDialog(
+      context: context,
+      builder: (ctx) {
+        return AlertDialog.adaptive(
+          title: const Text('알림'),
+          content: const Text(
+            '프로파일 설치 페이지를 열 수 없습니다.\n\n'
+            '네트워크 연결 상태를 확인한 후 다시 시도해주세요.\n'
+            '문제가 계속되면 관리자에게 문의해주세요.',
+          ),
+          actions: <Widget>[
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: const Text('확인'),
+            ),
+          ],
+        );
+      },
+    );
   }
 
 
   _manualEvent(BuildContext context, {required TextEditingController controller, required HomeState state, required type, required code}) {
     showAdaptiveDialog(
         context: context,
+        barrierDismissible: false, // 바깥 영역을 눌러도 닫히지 않게 (업체코드/관리자코드 입력 팝업)
         builder: (ctx) {
           return AlertDialog.adaptive(
             backgroundColor: Colors.white,
@@ -1029,5 +1233,73 @@ class HomePage extends StatelessWidget {
             ],
           );
         });
+  }
+}
+
+/// [임시 디버그] 해제/차단 프로파일 설치·삭제 시 값 변화를 화면에서 확인하기 위한 오버레이.
+/// 확인이 끝나면 이 위젯과 Scaffold의 bottomSheet 라인을 제거한다.
+class _DebugOverlay extends StatefulWidget {
+  const _DebugOverlay();
+
+  @override
+  State<_DebugOverlay> createState() => _DebugOverlayState();
+}
+
+class _DebugOverlayState extends State<_DebugOverlay> {
+  String _info = '디버그 로딩...';
+  Timer? _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    _update();
+    _timer = Timer.periodic(const Duration(seconds: 1), (_) => _update());
+  }
+
+  Future<void> _update() async {
+    if (!Platform.isIOS) {
+      if (mounted) setState(() => _info = 'iOS 전용 디버그');
+      return;
+    }
+    try {
+      const platform = MethodChannel('mguard/ios/mobileconfig');
+      final result = await platform.invokeMethod('isMobileConfigInstalled');
+      final blockInfo = await platform.invokeMethod('getCameraBlockSource');
+      final cameraRestricted = blockInfo['cameraRestricted'];
+      final ps = await AppConfig.to.storage.read(key: 'profile_status');
+      final installed = await AppConfig.to.storage.read(key: 'profileInstalled');
+      if (mounted) {
+        setState(() {
+          _info = 'mdmInstalled: $result  /  cameraRestricted: $cameraRestricted\n'
+              'profile_status: $ps  /  installed: $installed';
+        });
+      }
+    } catch (e) {
+      if (mounted) setState(() => _info = '에러: $e');
+    }
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      color: Colors.black.withOpacity(0.85),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      child: Text(
+        _info,
+        textAlign: TextAlign.center,
+        style: const TextStyle(
+          color: Colors.greenAccent,
+          fontSize: 12,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+    );
   }
 }

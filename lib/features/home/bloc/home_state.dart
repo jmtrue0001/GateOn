@@ -22,6 +22,7 @@ class HomeState extends CommonState {
     this.qr,
     this.assetUrl,
     this.otherMdmDialogShown = false,
+    this.bleDevices = const [],
   });
 
   final String installedTime;
@@ -41,6 +42,8 @@ class HomeState extends CommonState {
   final String? qr;
   final String? assetUrl;
   final bool otherMdmDialogShown;
+  // 못 찾을 때 다이얼로그에 표시할, 감지된 전체 BLE 기기 목록(표시용 문자열)
+  final List<String> bleDevices;
 
   @override
   List<Object?> get props => [
@@ -62,5 +65,6 @@ class HomeState extends CommonState {
         qr,
         assetUrl,
         otherMdmDialogShown,
+        bleDevices,
       ];
 }

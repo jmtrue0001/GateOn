@@ -262,6 +262,27 @@ class _AddEnterpriseDialogState extends State<AddEnterpriseDialog> {
                           await FilePicker.platform.pickFiles(type: FileType.custom, withReadStream: true, allowedExtensions: ['jpg', 'png', 'jpeg']).then((value) async {
                             if (value != null) {
                               final file = value.files.first;
+                              // 업체 이미지 용량 제한 (10MB). 값 변경 시 이 상수만 수정.
+                              const int maxLogoBytes = 10 * 1024 * 1024;
+                              if (file.size > maxLogoBytes) {
+                                if (context.mounted) {
+                                  showAdaptiveDialog(
+                                    context: context,
+                                    builder: (context) => AlertDialog.adaptive(
+                                      title: const Text('알림'),
+                                      content: const Text('이미지는 10MB 이하만 업로드할 수 있습니다.'),
+                                      actions: [
+                                        adaptiveAction(
+                                          context: context,
+                                          onPressed: () => Navigator.pop(context),
+                                          child: const Text('확인'),
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                }
+                                return;
+                              }
                               await file.readStream?.first.then(
                                 (fileBytes) {
                                   widget.onFilePick?.call(fileBytes as Uint8List, file.extension);
@@ -374,6 +395,28 @@ class _AddEnterpriseDialogState extends State<AddEnterpriseDialog> {
                     InkWell(
                       onTap: () {
                         final dataFilled = latLng != null && nameController.text.isNotEmpty && codeController.text.isNotEmpty && addressController.text.isNotEmpty && usernameController.text.isNotEmpty && pwController.text.isNotEmpty && fileBytes != null;
+                        // 비밀번호 복잡도 검증 (8자 이상, 대/소문자·특수문자 각 1자 이상)
+                        final pwPolicyError = validatePasswordPolicy(pwController.text);
+                        if (pwController.text.isNotEmpty && pwPolicyError != null) {
+                          showAdaptiveDialog(
+                              context: context,
+                              builder: (ctx) {
+                                return AlertDialog.adaptive(
+                                  title: const Text('알림'),
+                                  content: Text(pwPolicyError, style: textTheme(context).krBody1),
+                                  actions: <Widget>[
+                                    adaptiveAction(
+                                      context: context,
+                                      onPressed: () {
+                                        Navigator.pop(context);
+                                      },
+                                      child: const Text('확인'),
+                                    ),
+                                  ],
+                                );
+                              });
+                          return;
+                        }
                         if (dataFilled) {
                           widget.onAdd?.call({
                             "username": usernameController.text,
@@ -707,6 +750,27 @@ class _EditEnterpriseDialogState extends State<EditEnterpriseDialog> {
                           await FilePicker.platform.pickFiles(type: FileType.custom, withReadStream: true, allowedExtensions: ['jpg', 'png', 'jpeg']).then((value) async {
                             if (value != null) {
                               final file = value.files.first;
+                              // 업체 이미지 용량 제한 (10MB). 값 변경 시 이 상수만 수정.
+                              const int maxLogoBytes = 10 * 1024 * 1024;
+                              if (file.size > maxLogoBytes) {
+                                if (context.mounted) {
+                                  showAdaptiveDialog(
+                                    context: context,
+                                    builder: (context) => AlertDialog.adaptive(
+                                      title: const Text('알림'),
+                                      content: const Text('이미지는 10MB 이하만 업로드할 수 있습니다.'),
+                                      actions: [
+                                        adaptiveAction(
+                                          context: context,
+                                          onPressed: () => Navigator.pop(context),
+                                          child: const Text('확인'),
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                }
+                                return;
+                              }
                               await file.readStream?.first.then(
                                 (fileBytes) {
                                   widget.onFilePick?.call(fileBytes as Uint8List, file.extension);

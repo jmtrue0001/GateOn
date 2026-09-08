@@ -13,7 +13,13 @@ class DetailPaginate extends UserEvent {
 }
 
 class ReInitial extends UserEvent {
-  const ReInitial();
+  const ReInitial({this.page});
+  final int? page;
+}
+
+class Initial extends UserEvent {
+  const Initial({this.page,});
+  final int? page;
 }
 
 class ExcelDownload extends UserEvent{

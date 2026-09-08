@@ -131,10 +131,11 @@ class MainActivity : FlutterActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 //        instance = this
-        window.setFlags(
-            WindowManager.LayoutParams.FLAG_SECURE,
-            WindowManager.LayoutParams.FLAG_SECURE
-        )
+        //안드로이드 캡처 방지 코드
+//        window.setFlags(
+//            WindowManager.LayoutParams.FLAG_SECURE,
+//            WindowManager.LayoutParams.FLAG_SECURE
+//        )
         mContext = applicationContext
         devicePolicyManager =
             getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager?
@@ -193,7 +194,7 @@ class MainActivity : FlutterActivity() {
             intent.putExtra(DevicePolicyManager.EXTRA_DEVICE_ADMIN, componentName)
             intent.putExtra(
                 DevicePolicyManager.EXTRA_ADD_EXPLANATION,
-                "GateON에서는 보안을 위해 아래와 같은 기능을 제한하고 있습니다. 장치 관리자 권한을 허용해야 GateON을 사용하실 수 있습니다."
+                "게이트온에서는 보안을 위해 아래와 같은 기능을 제한하고 있습니다. 장치 관리자 권한을 허용해야 게이트온을 사용하실 수 있습니다."
             )
             startActivityForResult(intent, DEVICE_ADMIN_ADD_RESULT_ENABLE)
         } else {
@@ -220,7 +221,7 @@ class MainActivity : FlutterActivity() {
             intent.putExtra(DevicePolicyManager.EXTRA_DEVICE_ADMIN, componentName)
             intent.putExtra(
                 DevicePolicyManager.EXTRA_ADD_EXPLANATION,
-                "GateON에서는 보안을 위해 아래와 같은 기능을 제한하고 있습니다. 장치 관리자 권한을 허용해야 GateON을 사용하실 수 있습니다."
+                "게이트온에서는 보안을 위해 아래와 같은 기능을 제한하고 있습니다. 장치 관리자 권한을 허용해야 게이트온을 사용하실 수 있습니다."
             )
             startActivityForResult(intent, 2)
         } else {
@@ -331,14 +332,14 @@ class MainActivity : FlutterActivity() {
         enterpriseDeviceManager?.restrictionPolicy?.setCameraState(!cameraDisabled)
         enterpriseDeviceManager?.restrictionPolicy?.allowAudioRecord(!cameraDisabled)
         enterpriseDeviceManager?.restrictionPolicy?.setMicrophoneState(!cameraDisabled)
-//        enterpriseDeviceManager?.restrictionPolicy?.setBluetoothTethering(!cameraDisabled)
+        enterpriseDeviceManager?.restrictionPolicy?.setBluetoothTethering(!cameraDisabled)
 //        enterpriseDeviceManager?.restrictionPolicy?.allowWiFi(!cameraDisabled)
-        enterpriseDeviceManager?.restrictionPolicy?.setWifiTethering(!cameraDisabled)
-        enterpriseDeviceManager?.restrictionPolicy?.allowFactoryReset(!cameraDisabled)
+//        enterpriseDeviceManager?.restrictionPolicy?.setWifiTethering(!cameraDisabled)
+//        enterpriseDeviceManager?.restrictionPolicy?.allowFactoryReset(!cameraDisabled)
         enterpriseDeviceManager?.restrictionPolicy?.setUsbTethering(!cameraDisabled)
         enterpriseDeviceManager?.restrictionPolicy?.allowUsbHostStorage(!cameraDisabled)
         enterpriseDeviceManager?.restrictionPolicy?.setUsbDebuggingEnabled(!cameraDisabled)
-        enterpriseDeviceManager?.restrictionPolicy?.setUsbMediaPlayerAvailability(!cameraDisabled)
+//        enterpriseDeviceManager?.restrictionPolicy?.setUsbMediaPlayerAvailability(!cameraDisabled)
 //        if(cameraDisabled){
 ////            appPolicy?.setApplicationUninstallationDisabled("com.laonstory.mguard")
 //            appPolicy?.setApplicationUninstallationMode(ApplicationPolicy.

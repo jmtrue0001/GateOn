@@ -47,7 +47,7 @@ class TermCheckboxWidget extends StatelessWidget {
                           _launchUrl('https://gateon.co.kr:4433/personalPrivacy');
                         },
                     ),
-                    TextSpan(text: '에 동의하신 후 GateON의 기능차단 서비스를 이용하실 수 있습니다.', style: textTheme(context).krSubtext1),
+                    TextSpan(text: '에 동의하신 후 게이트온의 기능차단 서비스를 이용하실 수 있습니다.', style: textTheme(context).krSubtext1),
                   ],
                 ),
                 style: textTheme(context).krSubtext1,
@@ -87,7 +87,7 @@ class TermCheckboxWidget extends StatelessWidget {
                           _launchUrl('https://gateon.co.kr:4433/term');
                         },
                     ),
-                    TextSpan(text: ' 에 동의하신 후 GateON의 기능차단 서비스를 이용하실 수 있습니다.', style: textTheme(context).krSubtext1),
+                    TextSpan(text: ' 에 동의하신 후 게이트온의 기능차단 서비스를 이용하실 수 있습니다.', style: textTheme(context).krSubtext1),
                   ],
                 ),
                 style: textTheme(context).krSubtext1,

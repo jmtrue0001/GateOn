@@ -169,11 +169,47 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
               controller.clear();
               animatedDialog(context, state.errorMessage ?? '카메라 권한 제어 중 오류가 발생하였습니다.\n관리자에게 문의해주세요.', () {});
               break;
+            case CommonStatus.storageError:
+              // 앱 상태 정보를 불러오지 못함 → 다른 MDM으로 추측하지 않고 안내 (다시 시도 / 확인)
+              showAdaptiveDialog(
+                context: context,
+                builder: (ctx) => AlertDialog.adaptive(
+                  title: const Text('알림'),
+                  content: Text(
+                    '앱 상태 정보를 불러오지 못했습니다.\n다시 시도하거나, 계속 반복되면 관리자에게 문의해주세요.',
+                    style: textTheme(context).krBody1,
+                  ),
+                  actions: [
+                    adaptiveAction(
+                      context: ctx,
+                      onPressed: () {
+                        Navigator.pop(ctx);
+                        context.read<HomeBloc>().add(Initial()); // 다시 시도 → 초기화 재실행
+                      },
+                      child: const Text('다시 시도'),
+                    ),
+                    adaptiveAction(
+                      context: ctx,
+                      onPressed: () => Navigator.pop(ctx),
+                      child: const Text('확인'),
+                    ),
+                  ],
+                ),
+              );
+              break;
             case CommonStatus.bleList:
               _showBleListDialog(context, state.bleDevices, state.errorMessage);
               break;
+            case CommonStatus.needPermission:
+              // 카메라 권한 거부 → 설정 이동 안내 (비정상 처리 아님)
+              animatedDialog(
+                context,
+                '카메라 권한이 꺼져 있습니다.\n설정에서 카메라 권한을 허용해주세요.',
+                () => openAppSettings(),
+              );
+              break;
             case CommonStatus.failure:
-              AppConfig.to.storage.write(key: 'profile_status', value: 'ban');
+              AppConfig.to.writeProfileStatus('ban');
               // animatedDialog(context, '카메라 권한 제어 중\n비정상적인 접근이 감지되었습니다.\n관리자에게 문의해주세요. 에러코드 : ${state.ban}', () => context.go('/ban'));
               if(state.ban == "3"){
                 animatedDialog(context, '프로파일이 삭제되었습니다.\n관리자에게 문의해주세요.', () => context.go('/ban'));
@@ -1266,7 +1302,7 @@ class _DebugOverlayState extends State<_DebugOverlay> {
       final result = await platform.invokeMethod('isMobileConfigInstalled');
       final blockInfo = await platform.invokeMethod('getCameraBlockSource');
       final cameraRestricted = blockInfo['cameraRestricted'];
-      final ps = await AppConfig.to.storage.read(key: 'profile_status');
+      final ps = await AppConfig.to.readProfileStatus();
       final installed = await AppConfig.to.storage.read(key: 'profileInstalled');
       if (mounted) {
         setState(() {

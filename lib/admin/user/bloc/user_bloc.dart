@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:GateON/admin/user/repository/user_repository.dart';
+import 'package:GateON/admin/user/model/visitor_filter.dart';
 import 'package:bloc/bloc.dart';
 import 'package:copy_with_extension/copy_with_extension.dart';
 import 'dart:typed_data';
@@ -15,6 +16,12 @@ part 'user_state.dart';
 
 class UserBloc extends Bloc<CommonEvent, UserState> with StreamTransform {
 
+  // 현재 적용 중인 상세 검색 필터. 페이지네이션/정렬에도 유지되도록 Bloc에 보관.
+  VisitorFilter _filter = const VisitorFilter();
+
+  /// 상세 → 목록 복귀 시 필터 패널 UI를 현재 필터로 복원하기 위한 getter.
+  VisitorFilter get currentFilter => _filter;
+
   UserBloc() : super(const UserState()) {
     on<Initial>(_onInitial);
     on<Paginate>(_onPaginate);
@@ -22,6 +29,7 @@ class UserBloc extends Bloc<CommonEvent, UserState> with StreamTransform {
     on<DetailPaginate>(_onDetailPaginate);
     on<ReInitial>(_onReInitial);
     on<ExcelDownload>(_onExcelDownload);
+    on<SearchVisitors>(_onSearchVisitors);
   }
 
   @override
@@ -31,6 +39,7 @@ class UserBloc extends Bloc<CommonEvent, UserState> with StreamTransform {
 
 
   _onInitial(Initial event, Emitter<UserState> emit) async {
+    _filter = const VisitorFilter();
     add(const Paginate(page: 1, filterType: FilterType.disabledAt, orderType: OrderType.desc));
     await UserApi.to.statusVisitors().then((value) => emit(state.copyWith(userCount: value.data)));
   }
@@ -38,11 +47,17 @@ class UserBloc extends Bloc<CommonEvent, UserState> with StreamTransform {
   _onPaginate(Paginate event, Emitter<UserState> emit) async {
     // 실패 시 예외를 그대로 상태에 넣던 로직을 제거. (errorMessage는 String, users는 목록이라 캐스트 크래시 방지)
     try {
-      final users = await UserApi.to.getUsers(event.page ?? 1, event.query ?? '', event.filterType, event.orderType, event.count);
+      final users = await UserApi.to.getUsers(event.page ?? 1, event.query ?? '', event.filterType, event.orderType, event.count, filter: _filter);
       emit(state.copyWith(query: event.query, filterType: event.filterType, orderType: event.orderType, meta: users.data?.meta, status: CommonStatus.success, users: users.data?.items ?? []));
     } catch (e) {
       emit(state.copyWith(errorMessage: e.toString(), status: CommonStatus.failure));
     }
+  }
+
+  _onSearchVisitors(SearchVisitors event, Emitter<UserState> emit) async {
+    _filter = event.filter;
+    // 검색은 항상 1페이지부터, 기존 정렬/개수는 state 값을 유지
+    add(Paginate(page: event.page, count: event.count ?? state.meta?.sizePerPage, query: state.query, filterType: state.filterType, orderType: state.orderType));
   }
 
   _onDetail(Detail event, Emitter<UserState> emit) async {
@@ -68,8 +83,10 @@ class UserBloc extends Bloc<CommonEvent, UserState> with StreamTransform {
 
   _onReInitial(ReInitial event, Emitter<UserState> emit) async {
     final page = event.page ?? state.meta?.currentPage ?? 1;
+    // 목록으로 돌아올 때 적용 중이던 검색 필터 + 페이지 크기(예: 50개씩 조회)를 유지한다.
+    final count = state.meta?.sizePerPage;
     emit(state.copyWith(detail: false, filterType: FilterType.disabledAt));
-    add(Paginate(page: page, filterType: FilterType.disabledAt, orderType: OrderType.desc));
+    add(Paginate(page: page, count: count, filterType: FilterType.disabledAt, orderType: OrderType.desc));
     await UserApi.to.statusVisitors().then((value) => emit(state.copyWith(userCount: value.data)));
   }
 

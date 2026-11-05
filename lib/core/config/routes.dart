@@ -93,6 +93,16 @@ class AppRouter {
               pageBuilder: (BuildContext context, GoRouterState state) {
                 return const NoTransitionPage(child: AdminLoginPage());
               },
+              routes: [
+                // 세션 만료(토큰 401/403)로 강제 로그아웃 시 '/login/<임의값>'으로 이동한다.
+                // AdminLoginPage가 진입 시 '세션이 만료되었습니다' 안내를 1회 표시한다.
+                GoRoute(
+                  path: ':expired',
+                  pageBuilder: (BuildContext context, GoRouterState state) {
+                    return const NoTransitionPage(child: AdminLoginPage(sessionExpired: true));
+                  },
+                ),
+              ],
             ),
           ]),
     ],

@@ -210,6 +210,19 @@ class _AddDeviceDialogState extends State<AddDeviceDialog> {
                     InkWell(
                       onTap: () {
                         final dataFilled = codeController.text.isNotEmpty && deviceController.text.isNotEmpty;
+                        // 일련번호 검증 (영문·숫자만, 7~24자)
+                        final serialPolicyError = validateSerialPolicy(deviceController.text);
+                        if (dataFilled && serialPolicyError != null) {
+                          showAdaptiveDialog(
+                            context: context,
+                            builder: (ctx) => AlertDialog.adaptive(
+                              title: const Text('알림'),
+                              content: Text(serialPolicyError, style: textTheme(context).krBody1),
+                              actions: [adaptiveAction(context: context, onPressed: () => Navigator.pop(context), child: const Text('확인'))],
+                            ),
+                          );
+                          return;
+                        }
                         if (dataFilled) {
                           widget.onAdd?.call({"id": deviceController.text, "type": ableType.name, "enterpriseCode": codeController.text, "deviceType": deviceType.name});
                         } else {
@@ -310,7 +323,7 @@ class _EditDeviceDialogState extends State<EditDeviceDialog> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text('기기 추가', style: textTheme(context).krSubtitle1),
+                    Text('기기 수정', style: textTheme(context).krSubtitle1),
                     InkWell(
                         onTap: () {
                           final dataFilled = deviceController.text.isNotEmpty || codeController.text.isNotEmpty;
@@ -417,21 +430,23 @@ class _EditDeviceDialogState extends State<EditDeviceDialog> {
                     ),
                   ],
                 ),
-                // const SizedBox(height: 16),
-                // Row(
-                //   children: [
-                //     SizedBox(width: 128, child: Text('기기 활성화', style: textTheme(context).krSubtext1.copyWith(color: const Color(0xff999999)))),
-                //     Expanded(
-                //       child: DropdownMenuWidget<DeviceActive>(
-                //         dropdownList: [DeviceActive.ACTIVE, DeviceActive.INACTIVE],
-                //         onChanged: (value) {
-                //           deviceActive = value ?? DeviceActive.ACTIVE;
-                //         },
-                //         value: deviceActive,
-                //       ),
-                //     ),
-                //   ],
-                // ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    SizedBox(width: 128, child: Text('기기 활성화', style: textTheme(context).krSubtext1.copyWith(color: const Color(0xff999999)))),
+                    Expanded(
+                      child: DropdownMenuWidget<DeviceActive>(
+                        dropdownList: const [DeviceActive.ACTIVE, DeviceActive.INACTIVE],
+                        onChanged: (value) {
+                          setState(() {
+                            deviceActive = value ?? DeviceActive.ACTIVE;
+                          });
+                        },
+                        value: deviceActive,
+                      ),
+                    ),
+                  ],
+                ),
                 const SizedBox(height: 40),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.end,

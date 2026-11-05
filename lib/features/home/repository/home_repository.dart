@@ -82,8 +82,8 @@ class HomeRepository with CommonRepository {
     }
   }
 
-  Future<bool> disableBan(String? code, String? banCode) async {
-    var result = await post(profileUrl, param: 'ban', body: {"deviceId": await AppConfig.getDeviceId(), 'deviceModel' : AppConfig.to.model, 'osVersion' : AppConfig.to.osVersion, 'appVersion' : AppConfig.to.appVersion, "banCode": banCode, "code": code, 'osType': Platform.isAndroid ? "SAMSUNG" : "APPLE"}, loginRequest: false);
+  Future<bool> disableBan(String? code, String? banCode, {String? manager, String? reason}) async {
+    var result = await post(profileUrl, param: 'ban', body: {"deviceId": await AppConfig.getDeviceId(), 'deviceModel' : AppConfig.to.model, 'osVersion' : AppConfig.to.osVersion, 'appVersion' : AppConfig.to.appVersion, "banCode": banCode, "code": code, 'osType': Platform.isAndroid ? "SAMSUNG" : "APPLE", if (manager != null) "manager": manager, if (reason != null) "reason": reason}, loginRequest: false);
     switch (result.$1) {
       case StatusCode.success:
         return true;
@@ -140,6 +140,24 @@ class HomeRepository with CommonRepository {
     switch (result.$1) {
       case StatusCode.success:
         return result.$2['data'];
+      case StatusCode.unAuthorized:
+      case StatusCode.notFound:
+      case StatusCode.badRequest:
+      case StatusCode.forbidden:
+      case StatusCode.timeout:
+      case StatusCode.error:
+        throw result.$2;
+    }
+  }
+
+  /// 기기 밴/정상 상태 조회. 반환 true=해제(정상), false=밴. (SSE 초기 진실/폴백용)
+  /// GET /device/status?deviceId=&code=  →  { data: <isActive bool> }
+  Future<bool> getDeviceActive(String deviceId, String? code) async {
+    final query = 'deviceId=$deviceId${(code != null && code.isNotEmpty) ? '&code=$code' : ''}';
+    var result = await get(deviceUrl, param: 'status', query: query);
+    switch (result.$1) {
+      case StatusCode.success:
+        return result.$2['data'] ?? false;
       case StatusCode.unAuthorized:
       case StatusCode.notFound:
       case StatusCode.badRequest:

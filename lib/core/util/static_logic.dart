@@ -1,3 +1,6 @@
+import 'dart:typed_data';
+import 'dart:ui' as ui;
+
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -9,23 +12,85 @@ String dateParser(String? date) {
   return DateFormat('yyyy년 MM월 dd일').format(DateTime.parse(date));
 }
 
-/// 비밀번호 복잡도 검증.
-/// 규칙: 8자 이상 + 대문자 1자 이상 + 소문자 1자 이상 + 특수문자 1자 이상.
+/// 업로드한 이미지 바이트가 유효한(정상 디코딩되는) 이미지인지 검증한다.
 /// 통과하면 null, 실패하면 안내 메시지를 반환한다.
-String? validatePasswordPolicy(String password) {
-  if (password.length < 8) {
-    return '비밀번호는 8자 이상이어야 합니다.';
+/// - 빈 파일: 즉시 실패
+/// - 확장자만 이미지이고 실제 내용이 손상/비이미지: 디코딩 실패로 걸러냄
+Future<String?> validateImageBytes(Uint8List? bytes) async {
+  if (bytes == null || bytes.isEmpty) {
+    return '유효하지 않은 파일입니다.\n다른 파일을 선택해주세요.';
   }
-  if (!RegExp(r'[A-Z]').hasMatch(password)) {
-    return '대문자를 1자 이상 포함해주세요.';
+  try {
+    final codec = await ui.instantiateImageCodec(bytes);
+    final frame = await codec.getNextFrame();
+    if (frame.image.width == 0 || frame.image.height == 0) {
+      return '손상된 이미지 파일입니다.\n다른 파일을 선택해주세요.';
+    }
+    return null;
+  } catch (_) {
+    return '손상되었거나 지원하지 않는 이미지 파일입니다.\n다른 파일을 선택해주세요.';
   }
-  if (!RegExp(r'[a-z]').hasMatch(password)) {
-    return '소문자를 1자 이상 포함해주세요.';
+}
+
+/// 사용자 이름 검증. 규칙: 한글·영문·숫자만 + 2~24자.
+String? validateNamePolicy(String name) {
+  if (name.length < 2 || name.length > 24) {
+    return '사용자 이름은 2자 이상 24자 이하로 입력해주세요.';
   }
-  if (!RegExp(r'''[!@#$%^&*(),.?":{}|<>_\-\[\]/~`+=;'\\]''').hasMatch(password)) {
-    return '특수문자를 1자 이상 포함해주세요.';
+  if (!RegExp(r'^[가-힣a-zA-Z0-9]+$').hasMatch(name)) {
+    return '사용자 이름은 한글, 영문, 숫자만 입력 가능합니다.';
   }
   return null;
+}
+
+/// 업체명 검증. 규칙: 한글·영문·숫자만 + 2~24자.
+String? validateEnterpriseNamePolicy(String name) {
+  if (name.length < 2 || name.length > 24) {
+    return '업체명은 2자 이상 24자 이하로 입력해주세요.';
+  }
+  if (!RegExp(r'^[가-힣a-zA-Z0-9]+$').hasMatch(name)) {
+    return '업체명은 한글, 영문, 숫자만 입력 가능합니다.';
+  }
+  return null;
+}
+
+/// 아이디 검증. 규칙: 영문·숫자만 + 5~12자.
+String? validateIdPolicy(String id) {
+  if (id.length < 5 || id.length > 12) {
+    return '아이디는 영문, 숫자를 포함하여 5자 이상 12자 이하로 입력해주세요.';
+  }
+  if (!RegExp(r'^[a-zA-Z0-9]+$').hasMatch(id)) {
+    return '아이디는 영문, 숫자만 입력 가능합니다.';
+  }
+  return null;
+}
+
+/// 기기 일련번호 검증. 규칙: 영문·숫자만 + 7~24자.
+String? validateSerialPolicy(String serial) {
+  if (serial.length < 7 || serial.length > 24) {
+    return '일련번호는 7자 이상 24자 이하로 입력해주세요.';
+  }
+  if (!RegExp(r'^[a-zA-Z0-9]+$').hasMatch(serial)) {
+    return '일련번호는 영문, 숫자만 입력 가능합니다.';
+  }
+  return null;
+}
+
+/// 비밀번호 정책 안내 문구. 조건 중 하나라도 어기면 전체 조건을 한 번에 안내한다.
+const String passwordPolicyMessage =
+    '비밀번호는 9자 이상 32자 이하이며,\n영문 대문자, 숫자, 특수문자를 각각 1자 이상 포함해야 합니다.';
+
+/// 비밀번호 복잡도 검증.
+/// 규칙: 9~32자 + 영문 대문자 1자 이상 + 숫자 1자 이상 + 특수문자 1자 이상.
+/// 특수문자 집합은 서버(AuthService)와 정확히 일치: !@#$%^&*()_+-=[]{};':"\|,.<>/?
+/// (프론트에만 있던 ~ ` 는 서버 집합에 없어 제거 — 불일치로 가입/변경이 막히던 문제 방지)
+String? validatePasswordPolicy(String password) {
+  final bool isValid = password.length >= 9 &&
+      password.length <= 32 &&
+      RegExp(r'[A-Z]').hasMatch(password) &&
+      RegExp(r'[0-9]').hasMatch(password) &&
+      RegExp(r'''[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>/?]''').hasMatch(password);
+  return isValid ? null : passwordPolicyMessage;
 }
 
 String dateDataParser({String? dateString, DateTime? date, String format = 'yyyy-MM-dd'}) {
@@ -60,6 +125,8 @@ String typeParser(String? type){
     return "해제 시도";
   }else if(type == "ABNORMAL"){
     return "비정상 사용";
+  }else if(type == "ABNORMAL_RELEASE"){
+    return "관리자 해제";
   }else if(type == "DISABLE"){
     return "차단";
   }else if(type == "ENABLE"){

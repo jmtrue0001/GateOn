@@ -1,4 +1,5 @@
 import 'package:GateON/admin/main/bloc/main_bloc.dart';
+import 'package:GateON/admin/main/widget/account_dialog.dart';
 import 'package:GateON/admin/settings/ui/setting_page.dart';
 import 'package:GateON/admin/user/ui/user_page.dart';
 import 'package:GateON/core/core.dart';
@@ -23,10 +24,31 @@ class MainPage extends StatefulWidget {
 class _MainPageState extends State<MainPage> {
   late final PageController pageController;
 
+  // 최초 로그인 강제 변경 다이얼로그 중복 표시 방지 플래그.
+  bool _accountSetupPrompted = false;
+
   @override
   void initState() {
     pageController = PageController(initialPage: 0);
     super.initState();
+  }
+
+  // 최고관리자가 최초 로그인(비밀번호 미변경) 상태이면 취소 불가 계정 변경 다이얼로그를 강제로 띄운다.
+  void _maybePromptAccountSetup(BuildContext context) {
+    if (_accountSetupPrompted) return;
+    final needsSetup = AppConfig.to.secureModel.role == Role.ROLE_ADMIN &&
+        AppConfig.to.shared.getBool('isPasswordChanged') == false;
+    if (!needsSetup) return;
+    _accountSetupPrompted = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      AccountDialog.edit(
+        context,
+        forced: true,
+        onEdit: (value) async {
+          context.read<MainBloc>().add(ChangeAccount(value));
+        },
+      );
+    });
   }
 
   @override
@@ -38,7 +60,9 @@ class _MainPageState extends State<MainPage> {
         listener: (context, state) {
           if (state.status == CommonStatus.failure) {
             context.pushReplacement('/login');
-          } else {}
+          } else if (state.status == CommonStatus.success) {
+            _maybePromptAccountSetup(context);
+          }
         },
         child: BlocBuilder<MainBloc, MainState>(
             buildWhen: (prev, curr) => prev.status != curr.status,
@@ -68,6 +92,16 @@ class _MainPageState extends State<MainPage> {
                                           const Spacer(),
                                           Text('${state.enterpriseInfo?.name ?? ' '} (${state.enterpriseInfo?.loginId})', style: textTheme(context).krSubtitle1),
                                           const SizedBox(width: 24),
+                                          if (AppConfig.to.secureModel.role == Role.ROLE_ADMIN) ...[
+                                            InkWell(
+                                                onTap: () {
+                                                  AccountDialog.edit(context, onEdit: (value) async {
+                                                    context.read<MainBloc>().add(ChangeAccount(value));
+                                                  });
+                                                },
+                                                child: Text('아이디/비밀번호 변경', style: textTheme(context).krSubtext1.copyWith(color: const Color(0xff7B878D), decoration: TextDecoration.underline))),
+                                            const SizedBox(width: 24),
+                                          ],
                                           InkWell(
                                               onTap: () {
                                                 BlocProvider.of<MainBloc>(context).add(const LogOut());

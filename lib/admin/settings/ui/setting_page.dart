@@ -491,7 +491,7 @@ class SettingPage extends StatelessWidget {
                                                                 }
                                                               }),
 
-                                                          Text(state.$1 ? 'ON 켜짐' : 'OFF 꺼짐', style: textTheme(context).krBody2.copyWith(color: const Color(0xff7B878D))),
+                                                          Text(state.$2 ? 'ON 켜짐' : 'OFF 꺼짐', style: textTheme(context).krBody2.copyWith(color: const Color(0xff7B878D))),
                                                         ],
                                                       )
                                                     ],
@@ -502,7 +502,7 @@ class SettingPage extends StatelessWidget {
                                                     children: [
                                                       Row(
                                                         children: [
-                                                          Text(state.$1 ? 'ON 켜짐' : 'OFF 꺼짐', style: textTheme(context).krBody2.copyWith(color: const Color(0xff7B878D))),
+                                                          Text(state.$3 ? 'ON 켜짐' : 'OFF 꺼짐', style: textTheme(context).krBody2.copyWith(color: const Color(0xff7B878D))),
                                                           CupertinoSwitch(
                                                               value: state.$3,
                                                               onChanged: (value) {
@@ -525,7 +525,7 @@ class SettingPage extends StatelessWidget {
                                                                   context.read<SettingBloc>().add(ChangeFunctionSwitch((state.$1, state.$2, state.$3, value, state.$5, state.$6, state.$7, state.$8)));
                                                                 }
                                                               }),
-                                                          Text(state.$1 ? 'ON 켜짐' : 'OFF 꺼짐', style: textTheme(context).krBody2.copyWith(color: const Color(0xff7B878D))),
+                                                          Text(state.$4 ? 'ON 켜짐' : 'OFF 꺼짐', style: textTheme(context).krBody2.copyWith(color: const Color(0xff7B878D))),
                                                         ],
                                                       )
                                                     ],
@@ -536,7 +536,7 @@ class SettingPage extends StatelessWidget {
                                                     children: [
                                                       Row(
                                                         children: [
-                                                          Text(state.$1 ? 'ON 켜짐' : 'OFF 꺼짐', style: textTheme(context).krBody2.copyWith(color: const Color(0xff7B878D))),
+                                                          Text(state.$5 ? 'ON 켜짐' : 'OFF 꺼짐', style: textTheme(context).krBody2.copyWith(color: const Color(0xff7B878D))),
                                                           CupertinoSwitch(
                                                               value: state.$5,
                                                               onChanged: (value) {
@@ -559,7 +559,7 @@ class SettingPage extends StatelessWidget {
                                                                   context.read<SettingBloc>().add(ChangeFunctionSwitch((state.$1, state.$2, state.$3, state.$4, state.$5, value, state.$7, state.$8)));
                                                                 }
                                                               }),
-                                                          Text(state.$1 ? 'ON 켜짐' : 'OFF 꺼짐', style: textTheme(context).krBody2.copyWith(color: const Color(0xff7B878D))),
+                                                          Text(state.$6 ? 'ON 켜짐' : 'OFF 꺼짐', style: textTheme(context).krBody2.copyWith(color: const Color(0xff7B878D))),
                                                         ],
                                                       )
                                                     ],
@@ -570,7 +570,7 @@ class SettingPage extends StatelessWidget {
                                                     children: [
                                                       Row(
                                                         children: [
-                                                          Text(state.$1 ? 'ON 켜짐' : 'OFF 꺼짐', style: textTheme(context).krBody2.copyWith(color: const Color(0xff7B878D))),
+                                                          Text(state.$7 ? 'ON 켜짐' : 'OFF 꺼짐', style: textTheme(context).krBody2.copyWith(color: const Color(0xff7B878D))),
                                                           CupertinoSwitch(
                                                               value: state.$7,
                                                               onChanged: (value) {
@@ -593,7 +593,7 @@ class SettingPage extends StatelessWidget {
                                                                   context.read<SettingBloc>().add(ChangeFunctionSwitch((state.$1, state.$2, state.$3, state.$4, state.$5, state.$6, state.$7, value)));
                                                                 }
                                                               }),
-                                                          Text(state.$1 ? 'ON 켜짐' : 'OFF 꺼짐', style: textTheme(context).krBody2.copyWith(color: const Color(0xff7B878D))),
+                                                          Text(state.$8 ? 'ON 켜짐' : 'OFF 꺼짐', style: textTheme(context).krBody2.copyWith(color: const Color(0xff7B878D))),
                                                         ],
                                                       )
                                                     ],

@@ -29,6 +29,11 @@ import Foundation
         let isInstalled = self?.isMobileConfigInstalled() ?? false
         result(isInstalled)
 
+      case "getProfileStatus":
+        // 설치 여부(Bool)뿐 아니라 "인증서 조회 오류(앱 결함)"까지 구분해 반환한다.
+        // status: "installed" | "not_installed" | "error"
+        result(self?.getProfileStatus() ?? ["status": "error", "reason": "self is nil"])
+
       case "getCameraBlockSource":
         let blockInfo = self?.getCameraBlockSource() ?? [:]
         result(blockInfo)
@@ -41,7 +46,37 @@ import Foundation
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)
   }
 
-  // ✅ Mobile Config 설치 여부 확인 함수 (인증서 기반)
+  // ✅ 프로파일 상태를 "설치/미설치/오류"로 구분해 반환한다.
+  //   - installed     : 인증서 신뢰 성공 = 프로파일 설치됨
+  //   - not_installed : 신뢰 평가는 정상 수행됐으나 미신뢰 = 프로파일 미설치 (정상 케이스)
+  //   - error         : 앱 내장 인증서 파일 부재/로드 실패/객체 생성 실패 등 "앱 자체 결함" (사용자 안내 필요)
+  func getProfileStatus() -> [String: Any] {
+    // 1. 앱 번들에서 Leaf 인증서 파일 경로
+    guard let certPath = Bundle.main.path(forResource: "leaf", ofType: "cer") else {
+        return ["status": "error", "reason": "cert_file_missing"]
+    }
+    // 2. 인증서 데이터 로드
+    guard let certData = try? Data(contentsOf: URL(fileURLWithPath: certPath)) else {
+        return ["status": "error", "reason": "cert_data_load_failed"]
+    }
+    // 3. SecCertificate 생성
+    guard let cert = SecCertificateCreateWithData(nil, certData as CFData) else {
+        return ["status": "error", "reason": "cert_create_failed"]
+    }
+    // 4~5. 신뢰 객체 생성
+    let policy = SecPolicyCreateBasicX509()
+    var trust: SecTrust?
+    let status = SecTrustCreateWithCertificates(cert as CFTypeRef, policy, &trust)
+    guard status == errSecSuccess, let validTrust = trust else {
+        return ["status": "error", "reason": "trust_create_failed(\(status))"]
+    }
+    // 6. 신뢰 평가 — 여기서의 성공/실패는 "설치/미설치"라는 정상 판정이다.
+    var error: CFError?
+    let isValid = SecTrustEvaluateWithError(validTrust, &error)
+    return ["status": isValid ? "installed" : "not_installed"]
+  }
+
+  // ✅ Mobile Config 설치 여부 확인 함수 (인증서 기반) — 기존 호출부 호환용 Bool 반환
   func isMobileConfigInstalled() -> Bool {
     // 1. 앱 번들에서 Leaf 인증서 파일 경로를 찾습니다.
     guard let certPath = Bundle.main.path(forResource: "leaf", ofType: "cer") else {

@@ -26,6 +26,14 @@ class ExcelDownload extends UserEvent{
   const ExcelDownload();
 }
 
+/// 방문객 리스트 상세 검색. filter를 보관해 이후 페이지네이션에도 유지한다.
+class SearchVisitors extends UserEvent {
+  const SearchVisitors({required this.filter, this.page = 1, this.count});
+  final VisitorFilter filter;
+  final int page;
+  final int? count;
+}
+
 // class VisitorSseDataReceived extends UserEvent {
 //   const VisitorSseDataReceived(this.data);
 //

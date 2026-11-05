@@ -1,12 +1,14 @@
 import '../../../core/core.dart';
+import '../model/visitor_filter.dart';
 
 class UserApi with CommonRepository {
   static UserApi get to => UserApi();
 
-  Future<ListModel<User>> getUsers(int page, String query, FilterType? filterType, OrderType? orderType, int? count) async {
+  Future<ListModel<User>> getUsers(int page, String query, FilterType? filterType, OrderType? orderType, int? count, {VisitorFilter? filter}) async {
     try {
       final sortData = filterType == FilterType.none || filterType == null || orderType == null ? '' : '&sort=${filterType.name},${orderType.name}';
-      var result = await get(visitorUrl, query: 'page=$page&size=${count ?? 10}&query=$query$sortData', token: TokenType.accessToken);
+      final filterData = filter?.toQuery() ?? '';
+      var result = await get(visitorUrl, query: 'page=$page&size=${count ?? 10}&query=$query$sortData$filterData', token: TokenType.accessToken);
       switch (result.$1) {
         case StatusCode.success:
           return ListModel.fromJson(result.$2);

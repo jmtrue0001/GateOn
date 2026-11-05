@@ -22,13 +22,28 @@ class BanPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final TextEditingController codeController = TextEditingController();
     final TextEditingController pwController = TextEditingController();
+    // 비정상 해제 시 담당자 이름·사유 입력 (감사 이력용)
+    final TextEditingController managerController = TextEditingController();
+    final TextEditingController reasonController = TextEditingController();
 
     return Scaffold(
       body: BlocProvider(
         create: (context) => BanBloc()..add(const Initial()),
         child: Scaffold(
           backgroundColor: const Color(0xffF7DD21),
-          body: BlocBuilder<BanBloc, BanState>(
+          body: BlocConsumer<BanBloc, BanState>(
+            listenWhen: (prev, curr) => prev.status != curr.status,
+            listener: (context, state) {
+              // 관리자 원격 해제(SSE) 감지 → 안내 다이얼로그 후 정상 흐름으로 재진입.
+              // (확인을 누르면 splash가 상태 재평가 후 홈으로 라우팅)
+              if (state.status == CommonStatus.success) {
+                animatedDialog(
+                  context,
+                  '관리자에 의해 차단이 해제되었습니다.',
+                  () => context.go('/splash'),
+                );
+              }
+            },
             builder: (context, state) {
               return Stack(
                 alignment: Alignment.center,
@@ -196,6 +211,25 @@ class BanPage extends StatelessWidget {
                           errorWidget: const SizedBox(),
                         ),
                       ),
+                      Material(
+                        color: Colors.transparent,
+                        child: InputWidget(
+                          maxLength: 10,
+                          controller: managerController,
+                          hint: '담당자 이름',
+                          errorWidget: const SizedBox(),
+                        ),
+                      ),
+                      Material(
+                        color: Colors.transparent,
+                        child: InputWidget(
+                          maxLength: 40,
+                          height: 80, // 해제 사유 입력란 높이를 키움
+                          controller: reasonController,
+                          hint: '해제 사유',
+                          errorWidget: const SizedBox(),
+                        ),
+                      ),
                     ],
                   ),
                   actions: <Widget>[
@@ -210,13 +244,30 @@ class BanPage extends StatelessWidget {
                     adaptiveAction(
                       context: context,
                       onPressed: () {
+                        // 담당자·사유는 감사 이력용 필수 입력 (비면 안내 후 중단)
+                        if (managerController.text.trim().isEmpty || reasonController.text.trim().isEmpty) {
+                          showAdaptiveDialog(
+                            context: context,
+                            builder: (ctx) => AlertDialog.adaptive(
+                              title: const Text('알림'),
+                              content: Text('담당자 이름과 해제 사유를 입력해주세요.', style: textTheme(context).krBody1),
+                              actions: [adaptiveAction(context: ctx, onPressed: () => Navigator.pop(ctx), child: const Text('확인'))],
+                            ),
+                          );
+                          return;
+                        }
                         Navigator.pop(context);
-                        HomeRepository.to.disableBan(codeController.text, pwController.text).then((value) async {
+                        HomeRepository.to.disableBan(
+                          codeController.text,
+                          pwController.text,
+                          manager: managerController.text.trim(),
+                          reason: reasonController.text.trim(),
+                        ).then((value) async {
                           if(value == true){
                             if(Platform.isAndroid){
                               await AndroidMethodChannel.to.enableCamera();
                             }
-                            await AppConfig.to.storage.write(key: 'profile_status', value: 'wait');
+                            await AppConfig.to.writeProfileStatus('wait');
                             await AppConfig.to.storage.write(key: 'profileInstalled', value: 'false');
                             // ban 해제 후 홈으로 이동 시 진행 중이던 비콘 스캔을 확실히 중단
                             await FlutterBluePlus.stopScan();

@@ -4,16 +4,56 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/core.dart';
-import '../../../core/widget/input_widget.dart';
 
-class AdminLoginPage extends StatelessWidget {
-  const AdminLoginPage({Key? key}) : super(key: key);
+class AdminLoginPage extends StatefulWidget {
+  const AdminLoginPage({Key? key, this.sessionExpired = false}) : super(key: key);
+
+  /// 세션 만료(토큰 401/403)로 로그인 화면에 진입한 경우 true.
+  /// true 이면 진입 직후 "세션이 만료되었습니다" 안내를 1회 표시한다.
+  final bool sessionExpired;
+
+  @override
+  State<AdminLoginPage> createState() => _AdminLoginPageState();
+}
+
+class _AdminLoginPageState extends State<AdminLoginPage> {
+  final TextEditingController idController = TextEditingController();
+  final TextEditingController pwController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.sessionExpired) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        showAdaptiveDialog(
+            context: context,
+            builder: (ctx) {
+              return AlertDialog.adaptive(
+                title: const Text('알림'),
+                content: Text('세션이 만료되었습니다.\n다시 로그인해주세요.', style: textTheme(ctx).krBody1),
+                actions: <Widget>[
+                  adaptiveAction(
+                    context: ctx,
+                    onPressed: () => Navigator.pop(ctx),
+                    child: const Text('확인'),
+                  ),
+                ],
+              );
+            });
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    idController.dispose();
+    pwController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    final TextEditingController idController = TextEditingController();
-    final TextEditingController pwController = TextEditingController();
-
     return BlocProvider(
       create: (context) => LoginBloc(),
       child: BlocListener<LoginBloc, LoginState>(

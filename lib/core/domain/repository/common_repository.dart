@@ -21,9 +21,16 @@ mixin CommonRepository {
     return _httpClient!;
   }
 
-  /// 진행 중인 토큰 재발급(single-flight). 여러 요청이 동시에 401을 받아도
+  /// 진행 중인 토큰 재발급(single-flight). 여러 요청이 동시에 401/403을 받아도
   /// refresh는 딱 1번만 수행한다. (rotation 재사용 감지로 강제 로그아웃되는 것 방지)
   static Future<bool>? _refreshFuture;
+
+  /// 마지막으로 refresh가 "성공"한 시각. 성공 직후 짧은 유예(_refreshCooldown) 동안
+  /// 들어온 재-refresh 요청은 새로 호출하지 않고 방금 성공 결과를 재사용한다.
+  /// (single-flight가 '동시'는 막지만 '연속(완료 직후)'은 못 막아, 회전된 옛 refresh 토큰이
+  ///  2차로 전송돼 서버의 재사용 감지에 걸려 401→로그아웃되는 것을 방지)
+  static DateTime? _lastRefreshOkAt;
+  static const Duration _refreshCooldown = Duration(seconds: 5);
 
   static dynamic _decodeBody(String raw) {
     try {
@@ -95,9 +102,18 @@ mixin CommonRepository {
     }
   }
 
-  /// 토큰 재발급을 single-flight로 보장한다.
+  /// 토큰 재발급을 single-flight + 완료 직후 유예로 보장한다.
+  /// - 진행 중이면 그 Future를 공유(동시 요청 → 1회 refresh)
+  /// - 방금 성공했으면(_refreshCooldown 이내) 재호출하지 않고 true 반환
+  ///   → 회전된 옛 refresh 토큰이 2차로 전송되는 것을 차단
   static Future<bool> _ensureRefreshed() {
-    return _refreshFuture ??= _doRefresh().whenComplete(() => _refreshFuture = null);
+    if (_refreshFuture != null) return _refreshFuture!;
+    final okAt = _lastRefreshOkAt;
+    if (okAt != null && DateTime.now().difference(okAt) < _refreshCooldown) {
+      // 방금 refresh 성공 → 새 토큰이 이미 저장돼 있으니 재호출 없이 성공으로 간주
+      return Future.value(true);
+    }
+    return _refreshFuture = _doRefresh().whenComplete(() => _refreshFuture = null);
   }
 
   /// POST /auth/refresh — 헤더 X-AUTH-TOKEN-ACCESS=refreshToken, 바디 {token: 기존 accessToken}.
@@ -119,6 +135,7 @@ mixin CommonRepository {
           if (newAccess != null && newAccess.isNotEmpty) {
             // refresh는 rotation이므로 새 값이 오면 반드시 교체(없으면 기존 유지)
             await _saveTokens(newAccess, (newRefresh != null && newRefresh.isNotEmpty) ? newRefresh : td.refreshToken);
+            _lastRefreshOkAt = DateTime.now(); // 성공 시각 기록(유예 캐시용)
             return true;
           }
         }
@@ -144,60 +161,22 @@ mixin CommonRepository {
     }
   }
 
-  /// refresh 실패(세션 만료) → 세션 정리 + 안내 다이얼로그 + 로그인 화면 이동. (동시 다발 시 1번만)
+  /// refresh 실패(세션 만료) → 세션 정리 + 로그인 화면으로 이동. (동시 다발 시 1번만)
+  /// '/login/<임의값>'으로 이동하면 AdminLoginPage가 "세션이 만료되었습니다" 안내를 1회 표시한다.
+  /// (기존의 직접 다이얼로그 방식 대신, 세션만료 전용 라우트로 통일 — 라우터 변경 + 페이지 추가)
   static Future<void> _handleSessionExpired() async {
     if (_handlingSessionExpiry) return;
     _handlingSessionExpiry = true;
     await _clearSession();
     final ctx = navigatorKey.currentContext;
     if (ctx != null) {
-      showDialog(
-        context: ctx,
-        barrierDismissible: false,
-        builder: (dctx) => AlertDialog(
-          title: const Text('알림'),
-          content: const Text('로그인이 만료되었습니다.\n다시 로그인해 주세요.'),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(dctx).pop();
-                dctx.go('/login');
-              },
-              child: const Text('확인'),
-            ),
-          ],
-        ),
-      );
+      ctx.go('/login/expired');
     }
     // 이후 만료도 처리할 수 있도록 잠시 뒤 플래그 해제
     Future.delayed(const Duration(seconds: 2), () => _handlingSessionExpiry = false);
   }
 
   /// 네트워크/서버 연결 실패 안내가 진행 중인지. (동시 다발 실패에도 다이얼로그는 1번만)
-  static bool _handlingNetworkError = false;
-
-  /// 서버 연결 실패(인증서 오류·서버 다운·타임아웃 등) 시 안내 다이얼로그를 띄운다.
-  /// HTTP 응답 자체가 오지 않는 실패라 401/403 세션 처리와 별개로 사용자에게 원인을 알린다.
-  static Future<void> _handleNetworkError(String message) async {
-    if (_handlingNetworkError) return;
-    _handlingNetworkError = true;
-    final ctx = navigatorKey.currentContext;
-    if (ctx != null) {
-      showDialog(
-        context: ctx,
-        builder: (dctx) => AlertDialog(
-          title: const Text('알림'),
-          content: Text(message),
-          actions: [
-            TextButton(onPressed: () => Navigator.of(dctx).pop(), child: const Text('확인')),
-          ],
-        ),
-      );
-    }
-    // 잠깐의 다발성 실패를 1건으로 묶고, 이후 재시도 실패는 다시 안내할 수 있게 해제
-    Future.delayed(const Duration(seconds: 3), () => _handlingNetworkError = false);
-  }
-
   /// 요청 실행 + (accessToken 요청이 401이면) 재발급 후 1회 재시도 + 최종 인증 실패 시 로그인 이동.
   /// [build]는 매번 최신 토큰으로 요청을 새로 만든다(재시도 시 새 access가 반영되도록).
   static Future<(StatusCode, dynamic)> _execute(
@@ -229,15 +208,14 @@ mixin CommonRepository {
       }
       return result;
     } on TimeoutException {
-      // 응답 지연(서버 과부하/네트워크 지연)
-      await _handleNetworkError('서버 응답이 지연되고 있습니다.\n잠시 후 다시 시도해주세요.');
+      // 응답 지연(서버 과부하/네트워크 지연). 안내는 호출한 bloc/화면(animatedDialog)이 담당한다.
       return (StatusCode.timeout, '서버 응답이 지연되고 있습니다.\n잠시 후 다시 시도해주세요.');
     } catch (e) {
       // HTTP 응답이 오기 전 단계의 실패: 웹 인증서 오류(ERR_CERT_*)·서버 다운(Failed to fetch)·
-      // SocketException 등. status code가 없어 401/403 세션 처리와 무관하므로 여기서 안내한다.
+      // SocketException 등. status code가 없어 401/403 세션 처리와 무관.
+      // 안내 다이얼로그는 여기서 띄우지 않고(중복 방지), 메시지만 반환해 화면 쪽에서 한 번만 표시한다.
       logger.d('네트워크/연결 오류: $e');
       const message = '서버에 연결할 수 없습니다.\n네트워크 또는 서버 상태를 확인해주세요.';
-      await _handleNetworkError(message);
       return (StatusCode.error, message);
     }
   }

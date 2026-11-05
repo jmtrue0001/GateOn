@@ -349,6 +349,28 @@ class AppConfig {
 
   SharedPreferences get shared => _shared;
 
+  /// 차단 상태(profile_status)는 민감정보가 아니고, 암호화 저장소의 resetOnError 리셋에
+  /// 휩쓸려 null이 되면 "다른 MDM" 오탐을 유발한다. → 일반 SharedPreferences로 전환.
+  /// 읽을 때 과거 암호화 저장소에 있던 값이 있으면 1회 마이그레이션한다.
+  Future<String?> readProfileStatus() async {
+    final v = _shared.getString('profile_status');
+    if (v != null) return v;
+    // 레거시(암호화) 값 → SharedPreferences로 이관. 읽기 실패해도 크래시 없이 null 처리.
+    try {
+      final legacy = await _storage.read(key: 'profile_status');
+      if (legacy != null) {
+        await _shared.setString('profile_status', legacy);
+      }
+      return legacy;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<void> writeProfileStatus(String value) async {
+    await _shared.setString('profile_status', value);
+  }
+
   SecureModel get secureModel => _secureModel;
 
   set secureModel(SecureModel secureModel) => {_secureModel = secureModel};

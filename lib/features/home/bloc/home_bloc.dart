@@ -16,6 +16,7 @@ import 'package:nfc_manager/nfc_manager_android.dart';
 import 'package:nfc_manager/nfc_manager_ios.dart';
 import 'package:nfc_manager_ndef/nfc_manager_ndef.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:app_links/app_links.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -48,6 +49,7 @@ class HomeBloc extends Bloc<CommonEvent, HomeState> with StreamTransform, Widget
     on<ActionControl>(_onActionControl);
     on<Delete>(_onDelete);
     on<Ban>(_onBan);
+    on<NeedCameraPermission>(_onNeedCameraPermission);
     on<Error>(_onError);
     on<Init>(_onInit);
     on<ChangeInstallStatus>(_onChangeInstallStatus);
@@ -65,16 +67,39 @@ class HomeBloc extends Bloc<CommonEvent, HomeState> with StreamTransform, Widget
   StreamSubscription<List<ScanResult>>? _beaconSubscription;
   StreamSubscription<BluetoothAdapterState>? _adapterStateSubscription;
 
+  /// 비콘 "못 찾음" 판정 타이머. 스캔을 다시 시작할 때 이전 타이머를 반드시 취소해야
+  /// 이전 스캔의 타이머가 새 스캔 도중에 터져 즉시 "감지된 BLE 없음"이 뜨는 것을 막는다.
+  Timer? _beaconTimeoutTimer;
+
   /// 스캔 중 감지된 전체 BLE 결과(등록 비콘을 못 찾았을 때 다이얼로그로 보여주기 위함)
   List<ScanResult> _lastScanResults = [];
 
-  /// MBeacon 디바이스별로 serviceData가 담긴 최근 스캔결과 캐시(remoteId 기준).
-  /// 패킷마다 이름/serviceData가 갈려 와 현재 패킷에 serviceData가 없어도 감지를 놓치지 않도록 누적한다. (간헐 감지 방지)
-  final Map<String, ScanResult> _mbeaconSvcCache = {};
 
-  /// 이번 스캔 사이클에서 "MBeacon" 이름을 본 적 있는 디바이스(remoteId) 집합.
-  /// 이름 패킷과 serviceData 패킷이 따로/다른 순서로 와도, 둘 다 확보된 기기만 매칭하기 위한 것.
-  final Set<String> _mbeaconNameSeen = {};
+  /// 우리 비콘 serviceData의 고정 프리픽스(앞 5바이트). 모든 우리 비콘 공통이며, tag는 이 5바이트 뒤부터다.
+  /// (실측: serviceData = 64 27 11 4C B9 + [비콘별 tag]. tag 예: C3000013849F, C300001384A0)
+  /// 주변의 다른 BLE 기기를 우리 비콘으로 오인하지 않도록 이 프리픽스로 우리 비콘만 식별한다.
+  static const List<int> _beaconPrefix = [0x64, 0x27, 0x11, 0x4C, 0xB9];
+
+  /// 우리 비콘이 광고하는 서비스 UUID(스캔 필터용). 실측 serviceUuids=[fda5].
+  static final Guid _beaconServiceUuid = Guid('fda5');
+
+  /// serviceData가 우리 비콘 프리픽스로 시작하는지(=우리 비콘인지) 검사.
+  static bool _hasBeaconPrefix(List<int> data) {
+    if (data.length < _beaconPrefix.length) return false;
+    for (int i = 0; i < _beaconPrefix.length; i++) {
+      if (data[i] != _beaconPrefix[i]) return false;
+    }
+    return true;
+  }
+
+  /// ScanResult의 serviceData 중 우리 비콘 프리픽스를 가진 항목이 하나라도 있는지.
+  static bool _isOurBeacon(ScanResult r) {
+    for (final v in r.advertisementData.serviceData.values) {
+      if (_hasBeaconPrefix(v)) return true;
+    }
+    return false;
+  }
+
 
   /// 비콘 단일 연속 스캔 시간(초). 이 시간 동안 못 찾으면 감지된 BLE 목록을 표시한다.
   static const int _scanSeconds = 8;
@@ -130,6 +155,7 @@ class HomeBloc extends Bloc<CommonEvent, HomeState> with StreamTransform, Widget
     _tickerSubscription?.cancel();
     _beaconSubscription?.cancel();
     _adapterStateSubscription?.cancel();
+    _beaconTimeoutTimer?.cancel();
     // 홈 화면 종료(예: Ban으로 /ban 이동) 시 진행 중인 전역 비콘 스캔을 확실히 중단한다.
     // (중단하지 않으면 스캔이 살아남아 메인 복귀 후 새 구독이 이를 잡아 /url을 재조회 → 등록되지 않은 태그 오류)
     FlutterBluePlus.stopScan();
@@ -247,12 +273,17 @@ class HomeBloc extends Bloc<CommonEvent, HomeState> with StreamTransform, Widget
       bool otherMdmShown = false;
       if (cameraPermissionStatus == PermissionStatus.restricted) {
         String? tpassStatus;
+        bool readFailed = false;
         try {
-          tpassStatus = await AppConfig.to.storage.read(key: 'profile_status');
+          tpassStatus = await AppConfig.to.readProfileStatus();
         } catch (e) {
-          add(Error(errorMessage: 'Storage read profile_status failed: $e'));
+          // 읽기 에러 = 우리 상태 '모름' → 다른 MDM 추측 금지, 사용자에게 안내 다이얼로그
+          readFailed = true;
+          logger.e('profile_status 읽기 실패: $e');
         }
-        if (tpassStatus != 'disable') {
+        if (readFailed) {
+          initialStatus = CommonStatus.storageError;
+        } else if (tpassStatus != 'disable') {
           // 다른 MDM이 차단 중
           initialStatus = CommonStatus.otherMdm;
           otherMdmShown = true;
@@ -273,6 +304,17 @@ class HomeBloc extends Bloc<CommonEvent, HomeState> with StreamTransform, Widget
       // (다운로드만 한 상태는 카메라가 안 막혀 있어 false로 초기화 → 삭제해도 전이 없음 → 오발동 없음)
       try {
         final initPlatform = const MethodChannel('mguard/ios/mobileconfig');
+        // 프로파일 상태 확인: 앱 내장 인증서 파일 결함 등 "앱 자체 오류"면 사용자에게 안내한다.
+        // (installed/not_installed 는 정상, error 만 앱 결함 → 관리자 문의 안내)
+        try {
+          final Map<dynamic, dynamic> ps = await initPlatform.invokeMethod('getProfileStatus');
+          if (ps['status'] == 'error') {
+            logger.e('프로파일 인증서 확인 오류: ${ps['reason']}');
+            add(const Error(errorMessage: '앱 인증 정보를 확인할 수 없습니다.\n관리자에게 문의해주세요.'));
+          }
+        } catch (e) {
+          logger.e('getProfileStatus 호출 실패: $e');
+        }
         final Map<dynamic, dynamic> initBlockInfo = await initPlatform.invokeMethod('getCameraBlockSource');
         final bool initCameraRestricted = initBlockInfo['cameraRestricted'] as bool? ?? false;
         final bool initResult = initBlockInfo['gateOnProfileInstalled'] as bool? ?? false;
@@ -284,7 +326,7 @@ class HomeBloc extends Bloc<CommonEvent, HomeState> with StreamTransform, Widget
         // 카메라가 안 막혀있는데(initCameraRestricted=false) 차단/해제 기록이 남아있으면 = 꺼진 사이 프로파일 삭제됨.
         if (!initCameraRestricted) {
           final installedNow = await AppConfig.to.storage.read(key: 'profileInstalled');
-          final psNow = await AppConfig.to.storage.read(key: 'profile_status');
+          final psNow = await AppConfig.to.readProfileStatus();
           final unlockNow = await AppConfig.to.storage.read(key: 'unlockInstalled');
           if (installedNow == 'true' && psNow == 'disable') {
             // 차단완료 기록 있는데 카메라 안 막힘 = 차단 프로파일이 삭제됨
@@ -308,7 +350,7 @@ class HomeBloc extends Bloc<CommonEvent, HomeState> with StreamTransform, Widget
         logger.d("서버에서 상태값 : ${value}");
         if (value == true) {
           // 현재 차단 중인 경우에만 'true' 반영 — 새 차단 시작 후 _onActionControl의 'false' 초기화를 덮어쓰지 않기 위함
-          final profileStatus = await AppConfig.to.storage.read(key: 'profile_status');
+          final profileStatus = await AppConfig.to.readProfileStatus();
           if (profileStatus == 'disable') {
             AppConfig.to.storage.write(key: 'profileInstalled', value: 'true');
           }
@@ -352,7 +394,10 @@ class HomeBloc extends Bloc<CommonEvent, HomeState> with StreamTransform, Widget
         )
         .catchError(
           (error) async {
-            add(Error(errorMessage: '${error} 업체정보 에러, 코드값 : ${event.code}'));
+            add(Error(errorMessage: '${error} '
+                ''
+                // '업체정보 에러, 코드값 : ${event.code}'
+                ''));
             // await AppConfig.to.storage.delete(key: 'code');
           },
         );
@@ -383,33 +428,28 @@ class HomeBloc extends Bloc<CommonEvent, HomeState> with StreamTransform, Widget
         _lastScanResults = results; // 다이얼로그용 전체 BLE 목록은 가드와 무관하게 항상 수집
         if (!FlutterBluePlus.isScanningNow) return;
         for (ScanResult r in results) {
-          final id = r.device.remoteId.str;
-          // iOS는 continuousUpdates:true(allowDuplicates=YES)에서 adv/scan-response를 병합하지 않고
-          // 따로 던진다. 그래서 "이름"과 "serviceData"를 각각 기기별로 누적해 두고(도착 순서 무관),
-          // 한 기기에서 둘 다 확보되면 매칭한다. (병합에 의존하지 않으므로 dedup 드롭아웃도 없음)
-          if (r.advertisementData.serviceData.isNotEmpty) {
-            _mbeaconSvcCache[id] = r;
-          }
-          // advName이 advertising 패킷과 scan response 중 어느 쪽에 실려와도 인식되도록 둘 다 확인
-          final advName = r.advertisementData.advName.isNotEmpty ? r.advertisementData.advName : r.device.advName;
-          if (advName.contains('MBeacon')) {
-            _mbeaconNameSeen.add(id); // 이 기기에서 MBeacon 이름을 본 적 있음(다른 패킷에 serviceData가 와도 유지)
-          }
-          final good = _mbeaconSvcCache[id]; // 이 기기에서 앞서 본 serviceData
-          if (good != null && _mbeaconNameSeen.contains(id)) {
+          // 우리 비콘 고정 프리픽스(64 27 11 4C B9)로 시작하는 serviceData를 가진 기기만 우리 비콘으로 본다.
+          // 이름(MBeacon)은 iOS에서 scan-response로 늦게/누락되기 쉬워 조건에서 뺀다.
+          // 프리픽스는 우리 비콘만의 확실한 식별자라 단독으로 정확하고, iOS 이름-패킷 의존도 없어 견고하다.
+          if (_isOurBeacon(r)) {
+            _beaconTimeoutTimer?.cancel(); // 감지됐으니 "못 찾음" 판정 타이머 취소
             await FlutterBluePlus.stopScan();
-            add(BeaconDetected({'MBeacon': good}));
+            add(BeaconDetected({'MBeacon': r}));
             return;
           }
         }
       }, onError: (e) {
         // 스캔 스트림 오류(스루틀 등) 백업 감지(A) → 사용자 안내. (선제 카운트 B가 놓친 경우 대비)
-        logger.e('스캔 오류: $e');
+        // [진단] 어떤 스트림 오류인지 타입/코드/설명을 모두 찍는다.
+        final detail = e is FlutterBluePlusException
+            ? 'FBP code=${e.code} func=${e.function} desc=${e.description}'
+            : '${e.runtimeType}: $e';
+        logger.e('[스캔스트림오류] $detail');
         final isThrottle = e is FlutterBluePlusException &&
             (e.code == 6 || (e.description?.toLowerCase().contains('frequent') ?? false));
         add(Error(errorMessage: isThrottle
             ? '너무 자주 시도했습니다.\n약 30초 후 다시 시도해주세요.'
-            : '스캔 중 오류가 발생했습니다.\n다시 시도해주세요.'));
+            : '스캔 중 오류가 발생했습니다.\n다시 시도해주세요.\n[$detail]'));
       });
     }catch (e){
       emit(state.copyWith(status: CommonStatus.error, errorMessage: e.toString()));
@@ -457,8 +497,6 @@ class HomeBloc extends Bloc<CommonEvent, HomeState> with StreamTransform, Widget
       case InteractionType.beacon:
         _beaconActionDispatched = false; // 새 비콘 사이클 시작 → 중복 방지 플래그 리셋
         _beaconFetchDispatched = false;  // 조회 중복 방지 플래그도 리셋
-        _mbeaconSvcCache.clear();        // 이전 사이클 serviceData 캐시 제거
-        _mbeaconNameSeen.clear();        // 이름 확인 집합도 리셋
         _beaconIntent = 'DISABLE';       // 버튼 의도: 차단
         add(ScanBeacon(state.firstScan));
         break;
@@ -494,8 +532,6 @@ class HomeBloc extends Bloc<CommonEvent, HomeState> with StreamTransform, Widget
       case InteractionType.beacon:
         _beaconActionDispatched = false; // 새 비콘 사이클 시작 → 중복 방지 플래그 리셋
         _beaconFetchDispatched = false;  // 조회 중복 방지 플래그도 리셋
-        _mbeaconSvcCache.clear();        // 이전 사이클 serviceData 캐시 제거
-        _mbeaconNameSeen.clear();        // 이름 확인 집합도 리셋
         _beaconIntent = 'ENABLE';        // 버튼 의도: 해제
         add(ScanBeacon(state.firstScan));
       /// manual
@@ -526,7 +562,7 @@ class HomeBloc extends Bloc<CommonEvent, HomeState> with StreamTransform, Widget
     if (!event.enabled) {
       if (Platform.isAndroid) {
         final cameraStatus = await _checkAndroidAdminStatus();
-        final tpassStatus = await AppConfig.to.storage.read(key: 'profile_status');
+        final tpassStatus = await AppConfig.to.readProfileStatus();
 
         // 카메라가 restricted이고 TPASS가 차단한 게 아니면 → 다른 MDM
         if (cameraStatus == PermissionStatus.restricted && tpassStatus != 'disable' && tpassStatus != 'wait') {
@@ -598,7 +634,8 @@ class HomeBloc extends Bloc<CommonEvent, HomeState> with StreamTransform, Widget
                   if (!value) {
                     emit(state.copyWith(status: CommonStatus.success));
                   } else {
-                    emit(state.copyWith(status: CommonStatus.error, errorMessage: '차단 해제에 오류가 발생했습니다..'));
+                    // 우리 차단은 풀었는데도 카메라가 여전히 막혀있음 = 다른 MDM이 차단 중
+                    emit(state.copyWith(status: CommonStatus.otherMdm, cameraPermissionStatus: PermissionStatus.granted, otherMdmDialogShown: true));
                   }
                 });
               });
@@ -607,7 +644,8 @@ class HomeBloc extends Bloc<CommonEvent, HomeState> with StreamTransform, Widget
                 if (!value) {
                   emit(state.copyWith(status: CommonStatus.success));
                 } else {
-                  emit(state.copyWith(status: CommonStatus.error, errorMessage: '차단 해제에 오류가 발생했습니다..'));
+                  // 우리 차단은 풀었는데도 카메라가 여전히 막혀있음 = 다른 MDM이 차단 중
+                  emit(state.copyWith(status: CommonStatus.otherMdm, cameraPermissionStatus: PermissionStatus.granted, otherMdmDialogShown: true));
                 }
               });
             }
@@ -615,7 +653,7 @@ class HomeBloc extends Bloc<CommonEvent, HomeState> with StreamTransform, Widget
             emit(state.copyWith(status: CommonStatus.success, profileUrl: value?.url));
           }
 
-          await AppConfig.to.storage.write(key: 'profile_status', value: 'enable');
+          await AppConfig.to.writeProfileStatus('enable');
         }).catchError((error) async {
           final isConnected = await ConnectivityService.to.checkConnection();
           if (!isConnected) {
@@ -634,7 +672,7 @@ class HomeBloc extends Bloc<CommonEvent, HomeState> with StreamTransform, Widget
     // 다른 MDM 체크 (차단 진행 전)
     if (Platform.isAndroid) {
       final cameraStatus = await _checkAndroidAdminStatus();
-      final tpassStatus = await AppConfig.to.storage.read(key: 'profile_status');
+      final tpassStatus = await AppConfig.to.readProfileStatus();
 
       // 카메라가 restricted이고 TPASS가 차단한 게 아니면 → 다른 MDM
       if (cameraStatus == PermissionStatus.restricted && tpassStatus != 'disable' && tpassStatus != 'wait') {
@@ -663,7 +701,7 @@ class HomeBloc extends Bloc<CommonEvent, HomeState> with StreamTransform, Widget
 
 
       await AppConfig.to.storage.write(key: 'code', value: data?.enterprise?.code);
-      await AppConfig.to.storage.write(key: 'profile_status', value: 'wait');
+      await AppConfig.to.writeProfileStatus('wait');
 
     }).catchError((error) async {
       logger.d(error);
@@ -682,7 +720,7 @@ class HomeBloc extends Bloc<CommonEvent, HomeState> with StreamTransform, Widget
     // 다른 MDM 체크 (차단 진행 전)
     if (Platform.isAndroid) {
       final cameraStatus = await _checkAndroidAdminStatus();
-      final tpassStatus = await AppConfig.to.storage.read(key: 'profile_status');
+      final tpassStatus = await AppConfig.to.readProfileStatus();
 
       // 카메라가 restricted이고 TPASS가 차단한 게 아니면 → 다른 MDM
       if (cameraStatus == PermissionStatus.restricted && tpassStatus != 'disable' && tpassStatus != 'wait') {
@@ -713,7 +751,7 @@ class HomeBloc extends Bloc<CommonEvent, HomeState> with StreamTransform, Widget
 
 
       await AppConfig.to.storage.write(key: 'code', value: data?.enterprise?.code);
-      await AppConfig.to.storage.write(key: 'profile_status', value: 'wait');
+      await AppConfig.to.writeProfileStatus('wait');
 
     }).catchError((error) async {
       logger.d(error);
@@ -731,6 +769,12 @@ class HomeBloc extends Bloc<CommonEvent, HomeState> with StreamTransform, Widget
   _onScanBeacon(ScanBeacon event, Emitter<HomeState> emit) async {
     // 이미 이번 사이클에서 비콘이 매칭되어 액션이 나갔으면 중복 스캔을 돌리지 않는다.
     if (_beaconActionDispatched) return;
+    // Android는 위치 서비스(GPS)가 꺼져 있으면 BLE 스캔 결과가 아예 안 나온다.
+    // (권한과 별개로 '위치 서비스 ON'이 필요) → 꺼져 있으면 안내하고 스캔을 건너뛴다.
+    if (Platform.isAndroid && !await Geolocator.isLocationServiceEnabled()) {
+      add(const Error(errorMessage: '위치 서비스가 꺼져 있어\n비콘을 검색할 수 없습니다.\n위치(GPS)를 켜고 다시 시도해주세요.'));
+      return;
+    }
     // 짧은 시간에 스캔이 반복되면(30초 5회 이상) 플랫폼별로 다르게 대응한다.
     // - Android: OS가 30초 5회 초과를 실제로 막으므로(SCAN_FAILED_SCANNING_TOO_FREQUENTLY),
     //   그 전에 안내하고 스캔을 건너뛴다. (3초 텀으론 안 풀림)
@@ -740,7 +784,11 @@ class HomeBloc extends Bloc<CommonEvent, HomeState> with StreamTransform, Widget
     _recentScanStarts.removeWhere((t) => _now.difference(t) > const Duration(seconds: 30));
     if (_recentScanStarts.length >= 5) {
       if (Platform.isAndroid) {
-        add(const Error(errorMessage: '너무 자주 시도했습니다.\n약 30초 후 다시 시도해주세요.'));
+        // 다시 가능해지는 시점 = "가장 오래된 시도 + 30초". 그때까지 실제 남은 초를 계산해 안내한다.
+        final oldest = _recentScanStarts.first;
+        final remainSec = 30 - _now.difference(oldest).inSeconds;
+        final n = remainSec < 1 ? 1 : remainSec; // 최소 1초로 표기
+        add(Error(errorMessage: '너무 자주 시도했습니다.\n약 $n초 후 다시 시도해주세요.'));
         return;
       }
       // iOS: dedup 억제 창이 풀릴 만큼만 idle 후 카운터 리셋하고 진행 (사용자는 조금 더 걸린다고만 느낌)
@@ -774,26 +822,45 @@ class HomeBloc extends Bloc<CommonEvent, HomeState> with StreamTransform, Widget
 
   /// 단일 연속 스캔 실행. 비콘이 잡히면 _beaconSubscription에서 즉시 stopScan하고,
   /// _scanSeconds초 내 못 잡으면 감지된 BLE 목록을 표시한다. (끊었다 켜는 2단계/재시도 없음 → 빈틈 없음)
-  void _startBeaconScan() {
-    // continuousUpdates: false → iOS는 CBCentralManagerScanOptionAllowDuplicatesKey=NO가 되어
-    // adv 패킷과 scan-response를 "하나로 병합"해 콜백 1번에 이름+serviceData를 같이 준다.
-    // (비콘은 serviceData를 scan-response에 싣는데, true면 병합을 안 해 iOS가 scan-response를 덜 끌어와
-    //  serviceData가 통째로 빠지는 회차가 생김 → 데이터 완결성을 위해 병합되는 false 사용)
-    // 남는 약점인 "빠른 반복 시 dedup 드롭아웃"은 iOS 전용 withServices UUID 필터로 별도 대응 예정.
-    FlutterBluePlus.startScan(
-      timeout: const Duration(seconds: _scanSeconds),
-      continuousUpdates: false,
-    ).catchError((error) {
-      logger.d(error);
-      add(const Error(errorMessage: '차단 비콘을 찾을 수 없습니다.\n다시 시도해주세요.'));
-    }).whenComplete(() async {
-      // 스캔 종료 시점에 아직 매칭/조회가 없으면 감지된 BLE 목록 표시. (1초는 감지 이벤트 처리 여유)
-      Future.delayed(const Duration(seconds: 1), () {
-        if (state.scanResult.isEmpty && !_beaconFetchDispatched && !_beaconActionDispatched) {
-          logger.d('비콘 미발견 → 목록 표시');
-          add(const ShowBleList());
-        }
-      });
+  void _startBeaconScan() async {
+    // 스캔 상태가 꼬여(이전 스캔이 완전히 안 끝난 채) 새 startScan이 즉시 완료돼 실제로 스캔이
+    // 안 도는 문제가 있었다(whenComplete가 14ms만에 호출). → 시작 전에 이전 스캔을 확실히 멈추고
+    // 잠깐 정리 시간을 준 뒤 새로 시작한다. 그리고 판정은 startScan의 Future(whenComplete)에
+    // 의존하지 않고, "스캔 시작 후 고정 _scanSeconds초" 타이머로 한다. (Future 즉시 완료와 무관)
+    // 이전 스캔의 판정 타이머가 남아있으면 취소한다. (안 하면 이전 타이머가 새 스캔 도중 터져
+    //  "8초 경과"라며 즉시 목록이 뜨는 문제 발생 — 실제로는 이전 스캔 기준 8초)
+    _beaconTimeoutTimer?.cancel();
+    if (FlutterBluePlus.isScanningNow) {
+      await FlutterBluePlus.stopScan();
+    }
+    await Future.delayed(const Duration(milliseconds: 300)); // BLE 스택 정리 여유
+
+    try {
+      // continuousUpdates: false → iOS는 adv/scan-response를 병합해 이름+serviceData를 함께 준다.
+      // withServices(fda5)로 주변 무관 기기 필터, lowLatency로 촘촘히 스캔.
+      await FlutterBluePlus.startScan(
+        timeout: const Duration(seconds: _scanSeconds),
+        continuousUpdates: false,
+        withServices: [_beaconServiceUuid],
+        androidScanMode: AndroidScanMode.lowLatency,
+      );
+    } catch (error) {
+      final detail = error is FlutterBluePlusException
+          ? 'FBP code=${error.code} func=${error.function} desc=${error.description}'
+          : '${error.runtimeType}: $error';
+      logger.e('[스캔시작실패] $detail');
+      add(Error(errorMessage: '차단 비콘을 찾을 수 없습니다.\n다시 시도해주세요.'));
+      return;
+    }
+
+    // 판정 타이머: 스캔 시작 후 _scanSeconds(8초) 동안 비콘이 안 잡히면 그때 "감지된 BLE 목록" 표시.
+    // (startScan Future가 언제 끝나든 무관하게, 스캔이 도는 전체 시간을 온전히 기다린다)
+    _beaconTimeoutTimer = Timer(const Duration(seconds: _scanSeconds), () async {
+      if (state.scanResult.isEmpty && !_beaconFetchDispatched && !_beaconActionDispatched) {
+        logger.d('비콘 미발견 → 목록 표시 (${_scanSeconds}s 경과)');
+        if (FlutterBluePlus.isScanningNow) await FlutterBluePlus.stopScan();
+        add(const ShowBleList());
+      }
     });
   }
 
@@ -840,6 +907,7 @@ class HomeBloc extends Bloc<CommonEvent, HomeState> with StreamTransform, Widget
         logger.d('에러 : ${error.toString()}');
         if (beaconMatched) return;
         // 비콘은 감지됐지만 조회 실패(예: 등록되지 않은 태그) → 감지된 BLE 목록(감지된 MBeacon 포함)과 사유를 함께 표시
+        logger.d('[목록표시경로] 서버조회실패(886) → ShowBleList');
         add(ShowBleList(reason: '${error}'));
       });
     });
@@ -867,7 +935,7 @@ class HomeBloc extends Bloc<CommonEvent, HomeState> with StreamTransform, Widget
     if (isDisableAction) {
       if (Platform.isAndroid) {
         final cameraStatus = await _checkAndroidAdminStatus();
-        final tpassStatus = await AppConfig.to.storage.read(key: 'profile_status');
+        final tpassStatus = await AppConfig.to.readProfileStatus();
 
         // 카메라가 restricted이고 TPASS가 차단한 게 아니면 → 다른 MDM
         if (cameraStatus == PermissionStatus.restricted && tpassStatus != 'disable' && tpassStatus != 'wait') {
@@ -888,7 +956,7 @@ class HomeBloc extends Bloc<CommonEvent, HomeState> with StreamTransform, Widget
     await FlutterBluePlus.stopScan();
 
     await AppConfig.to.storage.write(key: 'code', value: event.data?.enterprise?.code);
-    await AppConfig.to.storage.write(key: 'profile_status', value: 'wait');
+    await AppConfig.to.writeProfileStatus('wait');
     emit(state.copyWith(status: CommonStatus.initial));
     if(Platform.isAndroid){
       add(ActionControl(enabled: event.data?.tagType == 'ENABLE' ? true : false, isActive: event.data?.isActive ?? true, profileUrl: event.data?.url, enterprise: event.data?.enterprise, tagType: event.data?.tagType));
@@ -922,7 +990,7 @@ class HomeBloc extends Bloc<CommonEvent, HomeState> with StreamTransform, Widget
         logger.d('카메라 상태 체크 : ${cameraPermissionStatus}');
 
         /// 카메라 차단 출처 확인 (TPASS vs 다른 MDM)
-        final tpassStatus = await AppConfig.to.storage.read(key: 'profile_status');
+        final tpassStatus = await AppConfig.to.readProfileStatus();
 
         if (cameraPermissionStatus == PermissionStatus.restricted) {
           // TPASS가 차단 중인지 확인
@@ -951,7 +1019,7 @@ class HomeBloc extends Bloc<CommonEvent, HomeState> with StreamTransform, Widget
         /// iOS 카메라 차단 출처 확인 (TPASS vs 다른 MDM)
         final Map<dynamic, dynamic> blockInfo = await platform.invokeMethod('getCameraBlockSource');
         final bool cameraRestricted = blockInfo['cameraRestricted'] as bool? ?? false;
-        final String? profileStatus = await AppConfig.to.storage.read(key: 'profile_status');
+        final String? profileStatus = await AppConfig.to.readProfileStatus();
         // GateON이 실제 차단 중 = 프로파일 설치됨(result) && (차단 의도(profile_status) 또는 차단완료 기록(installed))
         // 카메라가 막혔는데 그게 아니면 다른 MDM.
         // installed=='true'는 GateON이 차단완료를 보낸 기록이므로 GateON 차단이 확실함
@@ -1055,7 +1123,7 @@ class HomeBloc extends Bloc<CommonEvent, HomeState> with StreamTransform, Widget
       if (cameraPermissionStatus != state.cameraPermissionStatus && !isOtherMdmHandled) {
         switch (cameraPermissionStatus) {
           case PermissionStatus.granted:
-            await AppConfig.to.storage.read(key: 'profile_status').then((value) async {
+            await AppConfig.to.readProfileStatus().then((value) async {
               switch (value) {
                 case 'enable':
                   // cameraRestricted 기반 경로(위)에서 이미 해제완료를 전송했으면 중복 전송/알림음 방지를 위해 스킵
@@ -1100,7 +1168,7 @@ class HomeBloc extends Bloc<CommonEvent, HomeState> with StreamTransform, Widget
                     await AppConfig.to.storage.write(key: "profileInstalled", value: 'false');
                   }
                   /// 정상적으로 카메라 차단을 해제함
-                  await AppConfig.to.storage.write(key: 'profile_status', value: 'enable');
+                  await AppConfig.to.writeProfileStatus('enable');
                   AppConfig.to.storage.write(key: 'time_accepted', value: '${DateTime.now().millisecondsSinceEpoch}');
                   emit(state.copyWith(acceptedTime: '${DateTime.now().millisecondsSinceEpoch}'));
                   break;
@@ -1120,7 +1188,7 @@ class HomeBloc extends Bloc<CommonEvent, HomeState> with StreamTransform, Widget
             if (Platform.isIOS) {
               final platform = MethodChannel('mguard/ios/mobileconfig');
               final bool gateOnInstalled = await platform.invokeMethod('isMobileConfigInstalled');
-              final ps = await AppConfig.to.storage.read(key: 'profile_status');
+              final ps = await AppConfig.to.readProfileStatus();
               final bool gateOnBlocking = gateOnInstalled && (ps == 'disable' || ps == 'wait');
               if (!gateOnBlocking) {
                 if (state.status != CommonStatus.otherMdm) {
@@ -1143,7 +1211,7 @@ class HomeBloc extends Bloc<CommonEvent, HomeState> with StreamTransform, Widget
               }
             }
             /// 카메라를 차단함
-            await AppConfig.to.storage.write(key: 'profile_status', value: 'disable');
+            await AppConfig.to.writeProfileStatus('disable');
             AppConfig.to.storage.write(key: 'time_blocked', value: '${DateTime.now().millisecondsSinceEpoch}');
             emit(state.copyWith(blockedTime: '${DateTime.now().millisecondsSinceEpoch}'));
 
@@ -1179,7 +1247,14 @@ class HomeBloc extends Bloc<CommonEvent, HomeState> with StreamTransform, Widget
               logger.e('알림음 재생 실패: $e');
             }
             break;
+          case PermissionStatus.denied:
+          case PermissionStatus.permanentlyDenied:
+            // 카메라 권한이 거부된 상태는 "비정상(Ban)"이 아니라 사용자가 권한을 켜야 하는 상황.
+            // → 비정상 처리 대신 권한 설정 안내를 띄운다.
+            add(const NeedCameraPermission());
+            break;
           default:
+            // 그 외 예상 못한 권한 상태(limited/provisional 등)만 비정상으로 처리
             add(const Ban(error: '4'));
             break;
         }
@@ -1243,6 +1318,11 @@ class HomeBloc extends Bloc<CommonEvent, HomeState> with StreamTransform, Widget
     emit(state.copyWith(status: CommonStatus.bleList, bleDevices: devices, errorMessage: event.reason ?? '게이트온 비콘을 찾을 수 없습니다.'));
   }
 
+  /// 카메라 권한 거부 → 비정상(Ban) 대신 권한 허용 안내. 화면에서 설정 이동 다이얼로그를 띄운다.
+  _onNeedCameraPermission(NeedCameraPermission event, Emitter<HomeState> emit) async {
+    emit(state.copyWith(status: CommonStatus.needPermission));
+  }
+
   _onBan(Ban event, Emitter<HomeState> emit) async {
     emit(state.copyWith(status: CommonStatus.failure, ban: event.error ));
     _tickerSubscription?.cancel();
@@ -1271,26 +1351,26 @@ class HomeBloc extends Bloc<CommonEvent, HomeState> with StreamTransform, Widget
         if (!deviceManage) {
           await AndroidMethodChannel.to.enableDeviceAdmin().then((value) async {
             if(event.tagType == "ENABLE") {
-              await AppConfig.to.storage.write(key: 'profile_status', value: 'enable');
+              await AppConfig.to.writeProfileStatus('enable');
               await AndroidMethodChannel.to.enableCamera();
             } else {
-              await AppConfig.to.storage.write(key: 'profile_status', value: 'disable');
+              await AppConfig.to.writeProfileStatus('disable');
               await AndroidMethodChannel.to.disableCamera();
             }
           });
         } else {
           if(event.tagType == "ENABLE") {
-            await AppConfig.to.storage.write(key: 'profile_status', value: 'enable');
+            await AppConfig.to.writeProfileStatus('enable');
             await AndroidMethodChannel.to.enableCamera();
           } else {
-            await AppConfig.to.storage.write(key: 'profile_status', value: 'disable');
+            await AppConfig.to.writeProfileStatus('disable');
             await AndroidMethodChannel.to.disableCamera();
           }
         }
       }else{
 
         if(event.tagType == "ENABLE" || event.enabled == true) {
-          await AppConfig.to.storage.write(key: 'profile_status', value: 'enable');
+          await AppConfig.to.writeProfileStatus('enable');
           // 카메라가 이미 granted 상태면 _onTicked 상태변화 감지 불가 → C_ENABLE 직접 호출.
           // 단, 차단완료 기록(profileInstalled=='true')이 있을 때만 1번 전송하고 플래그를 내린다.
           // (비콘은 감지가 반복 발생해 ActionControl(ENABLE)이 여러 번 들어오므로, 가드가 없으면
@@ -1306,7 +1386,7 @@ class HomeBloc extends Bloc<CommonEvent, HomeState> with StreamTransform, Widget
             await AppConfig.to.storage.write(key: 'unlockInstalled', value: 'true');
           }
         } else {
-          await AppConfig.to.storage.write(key: 'profile_status', value: 'disable');
+          await AppConfig.to.writeProfileStatus('disable');
           await AppConfig.to.storage.write(key: 'profileInstalled', value: 'false');
         }
       }
@@ -1329,7 +1409,7 @@ class HomeBloc extends Bloc<CommonEvent, HomeState> with StreamTransform, Widget
       final bool cameraRestricted = blockInfo['cameraRestricted'] as bool? ?? false;
       if (!cameraRestricted) return false;
       final bool gateOnProfileInstalled = blockInfo['gateOnProfileInstalled'] as bool? ?? false;
-      final tpassStatus = await AppConfig.to.storage.read(key: 'profile_status');
+      final tpassStatus = await AppConfig.to.readProfileStatus();
       final installed = await AppConfig.to.storage.read(key: 'profileInstalled');
       // installed=='true'(차단완료 기록)도 GateON 차단으로 인정 — 해제 시도로 profile_status='enable'이지만
       // 해제 프로필 미구성으로 차단이 유지되는 모순 상태를 다른 MDM으로 오판하지 않기 위함
@@ -1368,7 +1448,7 @@ class HomeBloc extends Bloc<CommonEvent, HomeState> with StreamTransform, Widget
 
     if (Platform.isAndroid) {
       final cameraStatus = await _checkAndroidAdminStatus();
-      final tpassStatus = await AppConfig.to.storage.read(key: 'profile_status');
+      final tpassStatus = await AppConfig.to.readProfileStatus();
 
       // 카메라가 restricted이고 TPASS가 차단한 게 아니면 → 다른 MDM
       if (cameraStatus == PermissionStatus.restricted && tpassStatus != 'disable' && tpassStatus != 'wait') {

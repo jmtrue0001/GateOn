@@ -7,9 +7,11 @@ const serverUrl =
 // 'https://gateon.co.kr:28008';
 
 
+
 const profileUrl = '$serverUrl/url';
 
 const authUrl = '$serverUrl/auth';
+const accountUrl = '$serverUrl/auth/account';
 const checkCodeUrl = '$serverUrl/auth/code';
 const signupUrl = '$serverUrl/auth/register';
 const loginUrl = '$serverUrl/auth/sign-in';

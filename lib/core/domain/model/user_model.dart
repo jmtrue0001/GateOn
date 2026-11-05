@@ -16,7 +16,10 @@ class User {
   final String? type;
   final String? profileType;
 
-  const User({this.id, this.disabledAt, this.enabledAt, this.deviceId, this.isActive, this.type, this.appVersion, this.osVersion, this.deviceModel, this.osType, this.profileType});
+  /// 해당 방문객의 비정상(ABNORMAL) 이력 누적 건수. 0이면 비정상 이력 없음.
+  final int? abnormalCount;
+
+  const User({this.id, this.disabledAt, this.enabledAt, this.deviceId, this.isActive, this.type, this.appVersion, this.osVersion, this.deviceModel, this.osType, this.profileType, this.abnormalCount});
 
   factory User.fromJson(Map<String, dynamic> json) => _$UserFromJson(json);
 }

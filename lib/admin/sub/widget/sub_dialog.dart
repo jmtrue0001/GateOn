@@ -26,16 +26,37 @@ class _AddSubAdminDialogState extends State<AddSubAdminDialog> {
   final TextEditingController pwController = TextEditingController();
   final TextEditingController checkController = TextEditingController();
 
+  void _showAlert(String message) {
+    showAdaptiveDialog(
+        context: context,
+        builder: (ctx) {
+          return AlertDialog.adaptive(
+            title: const Text('알림'),
+            content: Text(message, style: textTheme(context).krBody1),
+            actions: <Widget>[
+              adaptiveAction(
+                context: context,
+                onPressed: () {
+                  Navigator.pop(context);
+                },
+                child: const Text('확인'),
+              ),
+            ],
+          );
+        });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Dialog(
-      child: IntrinsicHeight(
-        child: Container(
-          width: 800,
-          decoration: BoxDecoration(borderRadius: BorderRadius.circular(16)),
+      child: Container(
+        width: 800,
+        decoration: BoxDecoration(borderRadius: BorderRadius.circular(16)),
+        child: SingleChildScrollView(
           child: Padding(
             padding: const EdgeInsets.all(40.0),
             child: Column(
+              mainAxisSize: MainAxisSize.min,
               children: [
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -224,26 +245,22 @@ class _AddSubAdminDialogState extends State<AddSubAdminDialog> {
                               });
                           return;
                         }
-                        // 비밀번호 복잡도 검증 (8자 이상, 대/소문자·특수문자 각 1자 이상)
+                        // 사용자 이름 검증 (한글·영문·숫자만, 2~24자)
+                        final namePolicyError = validateNamePolicy(nameController.text);
+                        if (nameController.text.isNotEmpty && namePolicyError != null) {
+                          _showAlert(namePolicyError);
+                          return;
+                        }
+                        // 아이디 검증 (영문·숫자만, 5~12자)
+                        final idPolicyError = validateIdPolicy(idController.text);
+                        if (idController.text.isNotEmpty && idPolicyError != null) {
+                          _showAlert(idPolicyError);
+                          return;
+                        }
+                        // 비밀번호 복잡도 검증 (9~32자, 영문 대문자·숫자·특수문자 각 1자 이상)
                         final pwPolicyError = validatePasswordPolicy(pwController.text);
                         if (pwController.text.isNotEmpty && pwPolicyError != null) {
-                          showAdaptiveDialog(
-                              context: context,
-                              builder: (ctx) {
-                                return AlertDialog.adaptive(
-                                  title: const Text('알림'),
-                                  content: Text(pwPolicyError, style: textTheme(context).krBody1),
-                                  actions: <Widget>[
-                                    adaptiveAction(
-                                      context: context,
-                                      onPressed: () {
-                                        Navigator.pop(context);
-                                      },
-                                      child: const Text('확인'),
-                                    ),
-                                  ],
-                                );
-                              });
+                          _showAlert(pwPolicyError);
                           return;
                         }
                         if (dataFilled) {
@@ -332,13 +349,14 @@ class _EditSubAdminDialogState extends State<EditSubAdminDialog> {
   @override
   Widget build(BuildContext context) {
     return Dialog(
-      child: IntrinsicHeight(
-        child: Container(
-          width: 800,
-          decoration: BoxDecoration(borderRadius: BorderRadius.circular(16)),
+      child: Container(
+        width: 800,
+        decoration: BoxDecoration(borderRadius: BorderRadius.circular(16)),
+        child: SingleChildScrollView(
           child: Padding(
             padding: const EdgeInsets.all(40.0),
             child: Column(
+              mainAxisSize: MainAxisSize.min,
               children: [
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,

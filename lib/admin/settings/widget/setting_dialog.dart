@@ -26,13 +26,14 @@ class _EditPasswordDialogState extends State<EditPasswordDialog> {
   @override
   Widget build(BuildContext context) {
     return Dialog(
-      child: IntrinsicHeight(
-        child: Container(
-          width: 540,
-          decoration: BoxDecoration(borderRadius: BorderRadius.circular(16)),
+      child: Container(
+        width: 540,
+        decoration: BoxDecoration(borderRadius: BorderRadius.circular(16)),
+        child: SingleChildScrollView(
           child: Padding(
               padding: const EdgeInsets.all(40.0),
               child: Column(
+                mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text('아이디/비밀번호 변경', style: textTheme(context).krSubtitle1),
@@ -129,7 +130,7 @@ class _EditPasswordDialogState extends State<EditPasswordDialog> {
                                       '알림',
                                     ),
                                     content: Text(
-                                      '비밀번호가 일치하지 않습니다.',
+                                      '새 비밀번호가 일치하지 않습니다.',
                                       style: textTheme(context).krBody1,
                                     ),
                                     actions: <Widget>[
@@ -145,7 +146,7 @@ class _EditPasswordDialogState extends State<EditPasswordDialog> {
                                 });
                             return;
                           }
-                          // 비밀번호 복잡도 검증 (8자 이상, 대/소문자·특수문자 각 1자 이상)
+                          // 비밀번호 복잡도 검증 (9~32자, 영문 대문자·숫자·특수문자 각 1자 이상)
                           final pwPolicyError = validatePasswordPolicy(pwController.text);
                           if (pwController.text.isNotEmpty && pwPolicyError != null) {
                             showAdaptiveDialog(

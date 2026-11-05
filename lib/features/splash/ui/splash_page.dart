@@ -156,7 +156,7 @@ class _SplashPageState extends State<SplashPage> with WidgetsBindingObserver {
               child: switch (state.status) {
 
                 CommonStatus.success|| CommonStatus.dialog || CommonStatus.failure || CommonStatus.loading => const SvgImage("assets/images/logo_image.svg", height: 180, color: white),
-                CommonStatus.initial || CommonStatus.error|| CommonStatus.code || CommonStatus.otherMdm || CommonStatus.showBlockModal || CommonStatus.bleList => Container(
+                CommonStatus.initial || CommonStatus.error|| CommonStatus.code || CommonStatus.otherMdm || CommonStatus.showBlockModal || CommonStatus.bleList || CommonStatus.needPermission || CommonStatus.storageError => Container(
                 ),
               },
             ),

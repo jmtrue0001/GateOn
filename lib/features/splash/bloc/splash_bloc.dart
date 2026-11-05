@@ -116,7 +116,7 @@ class SplashBloc extends Bloc<CommonEvent, SplashState> {
       }else{
         // await AppConfig.to.storage.delete(key: 'guide_status');
         final guide = await AppConfig.to.storage.read(key: 'guide_status') == 'true';
-        final profileStatus = await AppConfig.to.storage.read(key: 'profile_status');
+        final profileStatus = await AppConfig.to.readProfileStatus();
         if (profileStatus == 'ban') {
           emit(state.copyWith(status: CommonStatus.success, route: '/ban'));
           return;

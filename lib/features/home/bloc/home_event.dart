@@ -120,6 +120,11 @@ class Ban extends HomeEvent {
   final String? error;
 }
 
+/// 카메라 권한이 거부되어(denied/permanentlyDenied) 사용자에게 권한 허용을 안내해야 할 때.
+class NeedCameraPermission extends HomeEvent {
+  const NeedCameraPermission();
+}
+
 /// 다른 MDM 체크 이벤트 (기능 차단 버튼 클릭 시)
 class CheckOtherMdm extends HomeEvent {
   const CheckOtherMdm();

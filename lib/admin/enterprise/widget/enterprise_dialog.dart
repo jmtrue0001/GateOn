@@ -6,6 +6,9 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 import '../../settings/repository/setting_repository.dart';
 
+/// 업체 주소 검색 안내 문구. 도로명주소만 사용하며, 미입력·지번검색·검색결과 없음에 공통 사용한다.
+const String _addressGuideMessage = '상세 주소를 입력해주세요.\n도로명 예시 : 서울 금천구 가산디지털1로 128 에스티엑스브이타워\n지번 예시 : 서울 금천구 가산동 371-37';
+
 class EnterpriseDialog {
   static add(BuildContext context, {Function()? onChange, Function(Uint8List, String?)? onFilePick, Function(Map<String, dynamic>)? onAdd}) {
     return dialog(context, AddEnterpriseDialog(onChange: onChange, onFilePick: onFilePick, onAdd: onAdd));
@@ -39,16 +42,37 @@ class _AddEnterpriseDialogState extends State<AddEnterpriseDialog> {
   LatLng? latLng;
   bool addressDone = false;
 
+  void _showAlert(String message) {
+    showAdaptiveDialog(
+        context: context,
+        builder: (ctx) {
+          return AlertDialog.adaptive(
+            title: const Text('알림'),
+            content: Text(message, style: textTheme(context).krBody1),
+            actions: <Widget>[
+              adaptiveAction(
+                context: context,
+                onPressed: () {
+                  Navigator.pop(context);
+                },
+                child: const Text('확인'),
+              ),
+            ],
+          );
+        });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Dialog(
-      child: IntrinsicHeight(
-        child: Container(
-          width: 800,
-          decoration: BoxDecoration(borderRadius: BorderRadius.circular(16), color: Colors.white),
+      child: Container(
+        width: 800,
+        decoration: BoxDecoration(borderRadius: BorderRadius.circular(16), color: Colors.white),
+        child: SingleChildScrollView(
           child: Padding(
             padding: const EdgeInsets.all(40.0),
             child: Column(
+              mainAxisSize: MainAxisSize.min,
               children: [
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -116,7 +140,7 @@ class _AddEnterpriseDialogState extends State<AddEnterpriseDialog> {
                       child: InputWidget(
                         width: double.infinity,
                         isNumber: true,
-                        maxLength: 8,
+                        maxLength: 6,
                         height: 40,
                         controller: codeController,
                         hint: '업체 코드를 입력하세요. (숫자 6자리)',
@@ -133,7 +157,7 @@ class _AddEnterpriseDialogState extends State<AddEnterpriseDialog> {
                         width: double.infinity,
                         height: 40,
                         controller: addressController,
-                        hint: '업체 주소를 입력 후 검색을 진행해주세요.',
+                        hint: '상세 주소를 입력해주세요.',
                         done: addressDone,
                         onChange: (value) {
                           setState(() {
@@ -141,34 +165,21 @@ class _AddEnterpriseDialogState extends State<AddEnterpriseDialog> {
                           });
                         },
                         onFieldSubmitted: (value) async {
+                          // 주소 미입력 시 검색 차단
+                          if (value.trim().isEmpty) {
+                            _showAlert(_addressGuideMessage);
+                            return;
+                          }
                           await SettingApi.to.getGeo(value).then((value) {
-                            if ((value.documents ?? []).isNotEmpty) {
+                            // 도로명주소가 있는 결과만 사용 (지번만 있는 결과는 제외)
+                            final roadDocuments = (value.documents ?? []).where((d) => (d.roadAddress?.addressName ?? '').isNotEmpty).toList();
+                            if (roadDocuments.isNotEmpty) {
                               setState(() {
-                                documents = value.documents;
+                                documents = roadDocuments;
                               });
                             } else {
-                              showAdaptiveDialog(
-                                  context: context,
-                                  builder: (ctx) {
-                                    return AlertDialog.adaptive(
-                                      title: const Text(
-                                        '알림',
-                                      ),
-                                      content: Text(
-                                        '일치하는 주소가 없습니다.\n다시 입력해주세요.',
-                                        style: textTheme(context).krBody1,
-                                      ),
-                                      actions: <Widget>[
-                                        adaptiveAction(
-                                          context: context,
-                                          onPressed: () {
-                                            Navigator.pop(context);
-                                          },
-                                          child: const Text('확인'),
-                                        ),
-                                      ],
-                                    );
-                                  });
+                              // 도로명주소 결과가 없으면(지번 검색 등) 안내창 표시
+                              _showAlert(_addressGuideMessage);
                             }
                           });
                         },
@@ -177,11 +188,21 @@ class _AddEnterpriseDialogState extends State<AddEnterpriseDialog> {
                     const SizedBox(width: 16),
                     InkWell(
                       onTap: () async {
+                        // 주소 미입력 시 검색 차단
+                        if (addressController.text.trim().isEmpty) {
+                          _showAlert(_addressGuideMessage);
+                          return;
+                        }
                         await SettingApi.to.getGeo(addressController.text).then((value) {
-                          if ((value.documents ?? []).isNotEmpty) {
+                          // 도로명주소가 있는 결과만 사용 (지번만 있는 결과는 제외)
+                          final roadDocuments = (value.documents ?? []).where((d) => (d.roadAddress?.addressName ?? '').isNotEmpty).toList();
+                          if (roadDocuments.isNotEmpty) {
                             setState(() {
-                              documents = value.documents;
+                              documents = roadDocuments;
                             });
+                          } else {
+                            // 도로명주소 결과가 없으면(지번 검색 등) 안내창 표시
+                            _showAlert(_addressGuideMessage);
                           }
                         });
                       },
@@ -283,14 +304,25 @@ class _AddEnterpriseDialogState extends State<AddEnterpriseDialog> {
                                 }
                                 return;
                               }
-                              await file.readStream?.first.then(
-                                (fileBytes) {
-                                  widget.onFilePick?.call(fileBytes as Uint8List, file.extension);
-                                  setState(() {
-                                    this.fileBytes = fileBytes as Uint8List?;
-                                  });
-                                },
-                              );
+                              // readStream 전체를 안전하게 수집(빈 스트림/다중 청크 대응).
+                              // .first 는 빈 파일에서 'Bad state: No element' 예외가 발생하고 첫 청크만 읽는 문제가 있다.
+                              Uint8List? imageBytes;
+                              try {
+                                final chunks = await file.readStream?.toList() ?? [];
+                                imageBytes = Uint8List.fromList(chunks.expand((c) => c).toList());
+                              } catch (_) {
+                                imageBytes = null;
+                              }
+                              // 손상/비이미지 파일 검증
+                              final imageError = await validateImageBytes(imageBytes);
+                              if (imageError != null) {
+                                if (context.mounted) _showAlert(imageError);
+                                return;
+                              }
+                              widget.onFilePick?.call(imageBytes!, file.extension);
+                              setState(() {
+                                fileBytes = imageBytes;
+                              });
                             }
                           });
                         }
@@ -308,7 +340,7 @@ class _AddEnterpriseDialogState extends State<AddEnterpriseDialog> {
                       ),
                     ),
                     const SizedBox(width: 16),
-                    Text('이미지는 jpg,png 파일만 업로드가 가능합니다.', style: textTheme(context).krSubtext2.copyWith(color: const Color(0xffAAB0B6))),
+                    Text('이미지는 jpg,png 파일만 업로드가 가능합니다. (최대 10MB)', style: textTheme(context).krSubtext2.copyWith(color: const Color(0xffAAB0B6))),
                   ],
                 ),
                 const SizedBox(height: 40),
@@ -394,80 +426,64 @@ class _AddEnterpriseDialogState extends State<AddEnterpriseDialog> {
                     const SizedBox(width: 16),
                     InkWell(
                       onTap: () {
-                        final dataFilled = latLng != null && nameController.text.isNotEmpty && codeController.text.isNotEmpty && addressController.text.isNotEmpty && usernameController.text.isNotEmpty && pwController.text.isNotEmpty && fileBytes != null;
-                        // 비밀번호 복잡도 검증 (8자 이상, 대/소문자·특수문자 각 1자 이상)
-                        final pwPolicyError = validatePasswordPolicy(pwController.text);
-                        if (pwController.text.isNotEmpty && pwPolicyError != null) {
-                          showAdaptiveDialog(
-                              context: context,
-                              builder: (ctx) {
-                                return AlertDialog.adaptive(
-                                  title: const Text('알림'),
-                                  content: Text(pwPolicyError, style: textTheme(context).krBody1),
-                                  actions: <Widget>[
-                                    adaptiveAction(
-                                      context: context,
-                                      onPressed: () {
-                                        Navigator.pop(context);
-                                      },
-                                      child: const Text('확인'),
-                                    ),
-                                  ],
-                                );
-                              });
+                        // 화면 필드 순서대로 검증: 업체명 → 업체 코드 → 업체 주소 → 아이디 → 비밀번호 → 업체 이미지
+                        if (nameController.text.isEmpty) {
+                          _showAlert('업체명을 입력해주세요.');
                           return;
                         }
-                        if (dataFilled) {
-                          widget.onAdd?.call({
-                            "username": usernameController.text,
-                            "password": pwController.text,
-                            "nickname": "${nameController.text} 관리자",
-                            "enterprise": {
-                              "code": int.parse(codeController.text),
-                              "name": nameController.text,
-                              "location": {"address": addressController.text, "latitude": latLng?.latitude, "longitude": latLng?.longitude}
-                            }
-                          });
-                        } else {
-                          showAdaptiveDialog(
-                              context: context,
-                              builder: (ctx) {
-                                var errorText = '오류가 발생했습니다.';
-                                if (nameController.text.isEmpty) {
-                                  errorText = '업체명을 입력해주세요.';
-                                } else if (codeController.text.isEmpty || codeController.text.length < 6) {
-                                  errorText = '업체 코드를 확인해주세요.';
-                                } else if (addressController.text.isEmpty) {
-                                  errorText = '업체 주소를 입력해주세요.';
-                                } else if (usernameController.text.isEmpty) {
-                                  errorText = '아이디를 입력해주세요.';
-                                } else if (pwController.text.isEmpty) {
-                                  errorText = '비밀번호를 입력해주세요.';
-                                } else if (fileBytes == null) {
-                                  errorText = '업체 이미지를 업로드해주세요.';
-                                } else if (latLng == null || !addressDone) {
-                                  errorText = '업체 주소를 검색해주세요.';
-                                }
-                                return AlertDialog.adaptive(
-                                  title: const Text(
-                                    '알림',
-                                  ),
-                                  content: Text(
-                                    errorText,
-                                    style: textTheme(context).krBody1,
-                                  ),
-                                  actions: <Widget>[
-                                    adaptiveAction(
-                                      context: context,
-                                      onPressed: () {
-                                        Navigator.pop(context);
-                                      },
-                                      child: const Text('확인'),
-                                    ),
-                                  ],
-                                );
-                              });
+                        // 업체명 검증 (한글·영문·숫자만, 2~24자)
+                        final namePolicyError = validateEnterpriseNamePolicy(nameController.text);
+                        if (namePolicyError != null) {
+                          _showAlert(namePolicyError);
+                          return;
                         }
+                        // 업체 코드 검증 (숫자 6자리 고정)
+                        if (codeController.text.length != 6) {
+                          _showAlert('업체 코드를 확인해주세요.\n(숫자 6자리)');
+                          return;
+                        }
+                        if (addressController.text.isEmpty) {
+                          _showAlert('업체 주소를 입력해주세요.');
+                          return;
+                        }
+                        if (latLng == null || !addressDone) {
+                          _showAlert('업체 주소를 검색해주세요.');
+                          return;
+                        }
+                        if (usernameController.text.isEmpty) {
+                          _showAlert('아이디를 입력해주세요.');
+                          return;
+                        }
+                        // 아이디 검증 (영문·숫자만, 5~12자)
+                        final idPolicyError = validateIdPolicy(usernameController.text);
+                        if (idPolicyError != null) {
+                          _showAlert(idPolicyError);
+                          return;
+                        }
+                        if (pwController.text.isEmpty) {
+                          _showAlert('비밀번호를 입력해주세요.');
+                          return;
+                        }
+                        // 비밀번호 복잡도 검증 (9~32자, 영문 대문자·숫자·특수문자 각 1자 이상)
+                        final pwPolicyError = validatePasswordPolicy(pwController.text);
+                        if (pwPolicyError != null) {
+                          _showAlert(pwPolicyError);
+                          return;
+                        }
+                        if (fileBytes == null) {
+                          _showAlert('업체 이미지를 업로드해주세요.');
+                          return;
+                        }
+                        widget.onAdd?.call({
+                          "username": usernameController.text,
+                          "password": pwController.text,
+                          "nickname": "${nameController.text} 관리자",
+                          "enterprise": {
+                            "code": int.parse(codeController.text),
+                            "name": nameController.text,
+                            "location": {"address": addressController.text, "latitude": latLng?.latitude, "longitude": latLng?.longitude}
+                          }
+                        });
                       },
                       child: Container(
                         width: 88,
@@ -514,6 +530,26 @@ class _EditEnterpriseDialogState extends State<EditEnterpriseDialog> {
   LatLng? latLng;
   bool addressDone = false;
 
+  void _showAlert(String message) {
+    showAdaptiveDialog(
+        context: context,
+        builder: (ctx) {
+          return AlertDialog.adaptive(
+            title: const Text('알림'),
+            content: Text(message, style: textTheme(context).krBody1),
+            actions: <Widget>[
+              adaptiveAction(
+                context: context,
+                onPressed: () {
+                  Navigator.pop(context);
+                },
+                child: const Text('확인'),
+              ),
+            ],
+          );
+        });
+  }
+
   @override
   void initState() {
     nameController.text = widget.enterprise?.name ?? '';
@@ -526,13 +562,14 @@ class _EditEnterpriseDialogState extends State<EditEnterpriseDialog> {
   @override
   Widget build(BuildContext context) {
     return Dialog(
-      child: IntrinsicHeight(
-        child: Container(
-          width: 800,
-          decoration: BoxDecoration(borderRadius: BorderRadius.circular(16), color: white),
+      child: Container(
+        width: 800,
+        decoration: BoxDecoration(borderRadius: BorderRadius.circular(16), color: white),
+        child: SingleChildScrollView(
           child: Padding(
             padding: const EdgeInsets.all(40.0),
             child: Column(
+              mainAxisSize: MainAxisSize.min,
               children: [
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -604,10 +641,10 @@ class _EditEnterpriseDialogState extends State<EditEnterpriseDialog> {
                         width: double.infinity,
                         enabled: false,
                         isNumber: true,
-                        maxLength: 8,
+                        maxLength: 6,
                         height: 40,
                         controller: codeController,
-                        hint: '업체 코드를 입력하세요. (숫자 8자리)',
+                        hint: '업체 코드를 입력하세요. (숫자 6자리)',
                       ),
                     ),
                   ],
@@ -621,7 +658,7 @@ class _EditEnterpriseDialogState extends State<EditEnterpriseDialog> {
                         width: double.infinity,
                         height: 40,
                         controller: addressController,
-                        hint: '업체 주소를 입력 후 검색을 진행해주세요.',
+                        hint: '상세 주소를 입력해주세요.',
                         done: addressDone,
                         onChange: (value) {
                           setState(() {
@@ -629,34 +666,21 @@ class _EditEnterpriseDialogState extends State<EditEnterpriseDialog> {
                           });
                         },
                         onFieldSubmitted: (value) async {
+                          // 주소 미입력 시 검색 차단
+                          if (value.trim().isEmpty) {
+                            _showAlert(_addressGuideMessage);
+                            return;
+                          }
                           await SettingApi.to.getGeo(value).then((value) {
-                            if ((value.documents ?? []).isNotEmpty) {
+                            // 도로명주소가 있는 결과만 사용 (지번만 있는 결과는 제외)
+                            final roadDocuments = (value.documents ?? []).where((d) => (d.roadAddress?.addressName ?? '').isNotEmpty).toList();
+                            if (roadDocuments.isNotEmpty) {
                               setState(() {
-                                documents = value.documents;
+                                documents = roadDocuments;
                               });
                             } else {
-                              showAdaptiveDialog(
-                                  context: context,
-                                  builder: (ctx) {
-                                    return AlertDialog.adaptive(
-                                      title: const Text(
-                                        '알림',
-                                      ),
-                                      content: Text(
-                                        '일치하는 주소가 없습니다.\n다시 입력해주세요.',
-                                        style: textTheme(context).krBody1,
-                                      ),
-                                      actions: <Widget>[
-                                        adaptiveAction(
-                                          context: context,
-                                          onPressed: () {
-                                            Navigator.pop(context);
-                                          },
-                                          child: const Text('확인'),
-                                        ),
-                                      ],
-                                    );
-                                  });
+                              // 도로명주소 결과가 없으면(지번 검색 등) 안내창 표시
+                              _showAlert(_addressGuideMessage);
                             }
                           });
                         },
@@ -665,11 +689,21 @@ class _EditEnterpriseDialogState extends State<EditEnterpriseDialog> {
                     const SizedBox(width: 16),
                     InkWell(
                       onTap: () async {
+                        // 주소 미입력 시 검색 차단
+                        if (addressController.text.trim().isEmpty) {
+                          _showAlert(_addressGuideMessage);
+                          return;
+                        }
                         await SettingApi.to.getGeo(addressController.text).then((value) {
-                          if ((value.documents ?? []).isNotEmpty) {
+                          // 도로명주소가 있는 결과만 사용 (지번만 있는 결과는 제외)
+                          final roadDocuments = (value.documents ?? []).where((d) => (d.roadAddress?.addressName ?? '').isNotEmpty).toList();
+                          if (roadDocuments.isNotEmpty) {
                             setState(() {
-                              documents = value.documents;
+                              documents = roadDocuments;
                             });
+                          } else {
+                            // 도로명주소 결과가 없으면(지번 검색 등) 안내창 표시
+                            _showAlert(_addressGuideMessage);
                           }
                         });
                       },
@@ -771,14 +805,25 @@ class _EditEnterpriseDialogState extends State<EditEnterpriseDialog> {
                                 }
                                 return;
                               }
-                              await file.readStream?.first.then(
-                                (fileBytes) {
-                                  widget.onFilePick?.call(fileBytes as Uint8List, file.extension);
-                                  setState(() {
-                                    this.fileBytes = fileBytes as Uint8List?;
-                                  });
-                                },
-                              );
+                              // readStream 전체를 안전하게 수집(빈 스트림/다중 청크 대응).
+                              // .first 는 빈 파일에서 'Bad state: No element' 예외가 발생하고 첫 청크만 읽는 문제가 있다.
+                              Uint8List? imageBytes;
+                              try {
+                                final chunks = await file.readStream?.toList() ?? [];
+                                imageBytes = Uint8List.fromList(chunks.expand((c) => c).toList());
+                              } catch (_) {
+                                imageBytes = null;
+                              }
+                              // 손상/비이미지 파일 검증
+                              final imageError = await validateImageBytes(imageBytes);
+                              if (imageError != null) {
+                                if (context.mounted) _showAlert(imageError);
+                                return;
+                              }
+                              widget.onFilePick?.call(imageBytes!, file.extension);
+                              setState(() {
+                                fileBytes = imageBytes;
+                              });
                             }
                           });
                         }
@@ -796,7 +841,7 @@ class _EditEnterpriseDialogState extends State<EditEnterpriseDialog> {
                       ),
                     ),
                     const SizedBox(width: 16),
-                    Text('이미지는 jpg,png 파일만 업로드가 가능합니다.', style: textTheme(context).krSubtext2.copyWith(color: const Color(0xffAAB0B6))),
+                    Text('이미지는 jpg,png 파일만 업로드가 가능합니다. (최대 10MB)', style: textTheme(context).krSubtext2.copyWith(color: const Color(0xffAAB0B6))),
                   ],
                 ),
                 const SizedBox(height: 40),
@@ -882,54 +927,56 @@ class _EditEnterpriseDialogState extends State<EditEnterpriseDialog> {
                     const SizedBox(width: 16),
                     InkWell(
                       onTap: () {
-                        final dataFilled = latLng != null && nameController.text.isNotEmpty && codeController.text.isNotEmpty && addressController.text.isNotEmpty && usernameController.text.isNotEmpty && pwController.text.isNotEmpty && fileBytes != null;
-                        if (dataFilled) {
-                          widget.onEdit?.call({
-                            "username": usernameController.text,
-                            "password": pwController.text,
-                            "name": nameController.text,
-                            "location": {"address": addressController.text, "latitude": latLng?.latitude, "longitude": latLng?.longitude},
-                          });
-                        } else {
-                          showAdaptiveDialog(
-                              context: context,
-                              builder: (ctx) {
-                                var errorText = '오류가 발생했습니다.';
-                                if (nameController.text.isEmpty) {
-                                  errorText = '업체명을 입력해주세요.';
-                                } else if (codeController.text.isEmpty || codeController.text.length < 8) {
-                                  errorText = '업체 코드를 확인해주세요.';
-                                } else if (addressController.text.isEmpty) {
-                                  errorText = '업체 주소를 입력해주세요.';
-                                } else if (usernameController.text.isEmpty) {
-                                  errorText = '아이디를 입력해주세요.';
-                                } else if (pwController.text.isEmpty) {
-                                  errorText = '비밀번호를 입력해주세요.';
-                                } else if (fileBytes == null) {
-                                  errorText = '업체 이미지를 업로드해주세요.';
-                                } else if (latLng == null || !addressDone) {
-                                  errorText = '업체 주소를 검색해주세요.';
-                                }
-                                return AlertDialog.adaptive(
-                                  title: const Text(
-                                    '알림',
-                                  ),
-                                  content: Text(
-                                    errorText,
-                                    style: textTheme(context).krBody1,
-                                  ),
-                                  actions: <Widget>[
-                                    adaptiveAction(
-                                      context: context,
-                                      onPressed: () {
-                                        Navigator.pop(context);
-                                      },
-                                      child: const Text('확인'),
-                                    ),
-                                  ],
-                                );
-                              });
+                        // 화면 필드 순서대로 검증: 업체명 → 업체 주소 → 아이디 → 비밀번호 → 업체 이미지
+                        // (업체 코드는 수정 불가 필드라 검증하지 않는다.)
+                        if (nameController.text.isEmpty) {
+                          _showAlert('업체명을 입력해주세요.');
+                          return;
                         }
+                        // 업체명 검증 (한글·영문·숫자만, 2~24자)
+                        final namePolicyError = validateEnterpriseNamePolicy(nameController.text);
+                        if (namePolicyError != null) {
+                          _showAlert(namePolicyError);
+                          return;
+                        }
+                        if (addressController.text.isEmpty) {
+                          _showAlert('업체 주소를 입력해주세요.');
+                          return;
+                        }
+                        if (latLng == null || !addressDone) {
+                          _showAlert('업체 주소를 검색해주세요.');
+                          return;
+                        }
+                        if (usernameController.text.isEmpty) {
+                          _showAlert('아이디를 입력해주세요.');
+                          return;
+                        }
+                        // 아이디 검증 (영문·숫자만, 5~12자)
+                        final idPolicyError = validateIdPolicy(usernameController.text);
+                        if (idPolicyError != null) {
+                          _showAlert(idPolicyError);
+                          return;
+                        }
+                        if (pwController.text.isEmpty) {
+                          _showAlert('비밀번호를 입력해주세요.');
+                          return;
+                        }
+                        // 비밀번호 복잡도 검증 (9~32자, 영문 대문자·숫자·특수문자 각 1자 이상)
+                        final pwPolicyError = validatePasswordPolicy(pwController.text);
+                        if (pwPolicyError != null) {
+                          _showAlert(pwPolicyError);
+                          return;
+                        }
+                        if (fileBytes == null) {
+                          _showAlert('업체 이미지를 업로드해주세요.');
+                          return;
+                        }
+                        widget.onEdit?.call({
+                          "username": usernameController.text,
+                          "password": pwController.text,
+                          "name": nameController.text,
+                          "location": {"address": addressController.text, "latitude": latLng?.latitude, "longitude": latLng?.longitude},
+                        });
                       },
                       child: Container(
                         width: 88,

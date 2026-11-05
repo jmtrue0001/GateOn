@@ -134,7 +134,7 @@ class _LocationPageState extends State<LocationPage> {
                     context.pop();
                   });
                 } else {
-                  animatedDialog(context, '차단 해제에 오류가 발생했습니다..', () {
+                  animatedDialog(context, '다른 보안앱(MDM)에서\n카메라가 차단중입니다.\n해제 후 이용해주세요', () {
                     context.pop();
                   });
                 }
@@ -147,7 +147,7 @@ class _LocationPageState extends State<LocationPage> {
                   context.pop();
                 });
               } else {
-                animatedDialog(context, '차단 해제에 오류가 발생했습니다..', () {
+                animatedDialog(context, '다른 보안앱(MDM)에서\n카메라가 차단중입니다.\n해제 후 이용해주세요', () {
                   context.pop();
                 });
               }
@@ -156,7 +156,7 @@ class _LocationPageState extends State<LocationPage> {
         } else {
           await _launchUrl(value?.url ?? '').then((value) => context.pop());
         }
-        await AppConfig.to.storage.write(key: 'profile_status', value: 'enable');
+        await AppConfig.to.writeProfileStatus('enable');
         setState(() {
           loading = false;
         });

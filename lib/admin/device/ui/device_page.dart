@@ -107,7 +107,7 @@ class DevicePage extends StatelessWidget {
                           CommonColumn('구분'),
                           CommonColumn('방식'),
                           CommonColumn('일련번호'),
-                          // CommonColumn('기기활성화'),
+                          CommonColumn('기기활성화'),
 
                           CommonColumn(
                             '업체이름',
@@ -159,7 +159,14 @@ class DevicePage extends StatelessWidget {
                   CommonCell(AbleType.strToEnum(element.value.type).data),
                   CommonCell(element.value.deviceType),
                   CommonCell(element.value.tagId ?? '-'),
-                  // CommonCell(element.value.deviceActive ?? '-'),
+                  // 활성/비활성 상태를 색으로 구분 (활성=초록, 비활성=빨강)
+                  DataCell(Text(
+                    element.value.deviceActive == true ? '활성화' : '비활성화',
+                    style: TextStyle(
+                      color: element.value.deviceActive == true ? const Color(0xff27AE60) : const Color(0xffEB5757),
+                      fontWeight: FontWeight.w600,
+                    ),
+                  )),
                   CommonCell(element.value.enterprise?.name ?? '-'),
                 ]))
         .toList();

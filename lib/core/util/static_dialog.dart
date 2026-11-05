@@ -745,7 +745,8 @@ showAcceptModal(context,EnterpriseFunction? enterpriseFunction,{required Functio
 
 dialog(BuildContext context, Widget widget) {
   showDialog<void>(
-    barrierDismissible: true,
+    // 입력 중인 다이얼로그가 바깥 영역 클릭으로 닫히지 않도록 false (업체/관리자/기기 등 공통)
+    barrierDismissible: false,
     barrierColor: black.withOpacity(0.1),
     context: context,
     builder: (BuildContext ctx) {

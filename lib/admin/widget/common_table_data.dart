@@ -6,24 +6,34 @@ class CommonColumn extends DataColumn {
   final Alignment alignment;
   final double maxWidth;
   final bool isNumber;
+  // 고정 폭(px). 지정 시 컬럼을 이 폭으로 고정(필터와 세로 정렬용). null이면 기존(maxWidth 제약)대로.
+  final double? width;
 
-  const CommonColumn(this.data, {this.alignment = Alignment.centerLeft, this.maxWidth = double.infinity, this.isNumber = false}) : super(label: const Text(''));
+  const CommonColumn(this.data, {this.alignment = Alignment.centerLeft, this.maxWidth = double.infinity, this.isNumber = false, this.width}) : super(label: const Text(''));
 
   @override
   bool get numeric => isNumber;
 
   @override
-  Widget get label => Container(constraints: BoxConstraints(maxWidth: maxWidth), child: dataWidget(data, alignment: alignment));
+  Widget get label => SizedBox(
+        width: width,
+        child: Container(constraints: BoxConstraints(maxWidth: maxWidth), child: dataWidget(data, alignment: alignment)),
+      );
 }
 
 class CommonCell extends DataCell {
   final dynamic data;
   final double maxWidth;
+  // 고정 폭(px). CommonColumn.width와 동일 값으로 맞춰 사용.
+  final double? width;
 
-  const CommonCell(this.data, {this.maxWidth = double.infinity}) : super(const Text(''));
+  const CommonCell(this.data, {this.maxWidth = double.infinity, this.width}) : super(const Text(''));
 
   @override
-  Widget get child => Container(constraints: BoxConstraints(maxWidth: maxWidth), child: dataWidget(data));
+  Widget get child => SizedBox(
+        width: width,
+        child: Container(constraints: BoxConstraints(maxWidth: maxWidth), child: dataWidget(data)),
+      );
 }
 
 Widget dataWidget(dynamic data, {Alignment alignment = Alignment.centerLeft}) {
